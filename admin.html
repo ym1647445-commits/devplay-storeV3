@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>DevPlay Admin</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="config.js"></script>
+
+<style>
+
+body{
+margin:0;
+font-family:Arial;
+background:#f5f5ff;
+direction:rtl;
+}
+
+.top{
+
+background:#6c3df4;
+padding:20px;
+color:white;
+font-size:28px;
+font-weight:bold;
+
+}
+
+.container{
+padding:20px;
+}
+
+.stats{
+
+display:flex;
+gap:15px;
+flex-wrap:wrap;
+margin-bottom:20px;
+
+}
+
+.card{
+
+background:white;
+padding:20px;
+border-radius:20px;
+flex:1;
+min-width:200px;
+box-shadow:0 0 10px rgba(0,0,0,.05);
+
+}
+
+.filters{
+
+display:flex;
+gap:10px;
+margin-bottom:20px;
+flex-wrap:wrap;
+
+}
+
+button{
+
+padding:10px 15px;
+border:none;
+border-radius:10px;
+background:#6c3df4;
+color:white;
+cursor:pointer;
+
+}
+
+.order{
+
+background:white;
+padding:20px;
+border-radius:20px;
+margin-bottom:15px;
+box-shadow:0 0 10px rgba(0,0,0,.05);
+
+}
+
+select{
+
+padding:10px;
+border-radius:10px;
+
+}
+
+.pending{
+color:orange;
+font-weight:bold;
+}
+
+.shipped{
+color:green;
+font-weight:bold;
+}
+
+.rejected{
+color:red;
+font-weight:bold;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="top">
+لوحة إدارة DevPlay 👑
+</div>
+
+<div class="container">
+
+<div class="stats">
+
+<div class="card">
+<h2 id="totalOrders">0</h2>
+<p>إجمالي الطلبات</p>
+</div>
+
+<div class="card">
+<h2 id="pendingOrders">0</h2>
+<p>قيد المراجعة</p>
+</div>
+
+<div class="card">
+<h2 id="shippedOrders">0</h2>
+<p>تم الشحن</p>
+</div>
+
+</div>
+
+<div class="filters">
+
+<button onclick="loadOrders()">الكل</button>
+
+<button onclick="filterOrders('pending')">
+قيد المراجعة
+</button>
+
+<button onclick="filterOrders('shipped')">
+تم الشحن
+</button>
+
+<button onclick="filterOrders('rejected')">
+مرفوض
+</button>
+
+</div>
+
+<div id="ordersContainer"></div>
+
+</div>
+
+<script>
+
+const supabaseClient = supabase.createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+
+let allOrders = [];
+
+async function loadOrders(){
+
+const { data, error } = await supabaseClient
+.from("orders")
+.select("*")
+.order("id",{ascending:false});
+
+if(error){
+
+alert(error.message);
+
+return;
+
+}
+
+allOrders = data;
+
+renderOrders(data);
+
+updateStats(data);
+
+}
+
+function updateStats(data){
+
+document.getElementById("totalOrders").innerText =
+data.length;
+
+document.getElementById("pendingOrders").innerText =
+data.filter(o=>o.status==="pending").length;
+
+document.getElementById("shippedOrders").innerText =
+data.filter(o=>o.status==="shipped").length;
+
+}
+
+function renderOrders(data){
+
+const container =
+document.getElementById("ordersContainer");
+
+container.innerHTML = "";
+
+data.forEach(order=>{
+
+container.innerHTML += `
+
+<div class="order">
+
+<h3>
+رقم الطلب:
+${order.order_code}
+</h3>
+
+<p>
+اللعبة:
+${order.game}
+</p>
+
+<p>
+الباقة:
+${order.package}
+</p>
+
+<p>
+اللاعب:
+${order.player_id}
+</p>
+
+<p>
+العميل:
+${order.customer_name}
+</p>
+
+<p>
+الرقم:
+${order.phone}
+</p>
+
+<p class="${order.status}">
+الحالة:
+${order.status}
+</p>
+
+<select onchange="updateStatus(${order.id},this.value)">
+
+<option value="pending"
+${order.status==="pending"?"selected":""}>
+قيد المراجعة
+</option>
+
+<option value="shipped"
+${order.status==="shipped"?"selected":""}>
+تم الشحن
+</option>
+
+<option value="rejected"
+${order.status==="rejected"?"selected":""}>
+مرفوض
+</option>
+
+</select>
+
+</div>
+
+`;
+
+});
+
+}
+
+function filterOrders(status){
+
+const filtered =
+allOrders.filter(o=>o.status===status);
+
+renderOrders(filtered);
+
+}
+
+async function updateStatus(id,status){
+
+await supabaseClient
+.from("orders")
+.update({status})
+.eq("id",id);
+
+loadOrders();
+
+}
+
+loadOrders();
+
+</script>
+
+</body>
+</html>
