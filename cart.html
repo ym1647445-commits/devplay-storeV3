@@ -1,1 +1,43 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>السلة</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script></head><body><div id="top"></div><section class="section container"><div class="layout-2"><div class="glass card"><h2>السلة 🛒</h2><div id="cartItems"></div></div><aside class="glass card"><h2>ملخص الطلب</h2><div class="total" id="total">0 جنيه</div><a class="btn" style="width:100%" href="checkout.html">إتمام الطلب</a><button class="btn red" style="width:100%;margin-top:10px" onclick="clearCart()">تفريغ السلة</button></aside></div></section><div id="foot"></div><div id="toast" class="toast"></div><script>top.innerHTML=header("games");foot.innerHTML=footer();</script><script>function render(){const c=cart();let total=0;cartItems.innerHTML=c.length?c.map((i,idx)=>{total+=Number(i.price);return `<div class="item-row"><div><b>${i.game}</b><p class="muted">${i.name}<br>${i.playerId}</p></div><div><b>${i.price} جنيه</b><br><button class="btn red" onclick="remove(${idx})">حذف</button></div></div>`}).join(""):"<p class='muted'>السلة فارغة.</p>";document.getElementById("total").textContent=total+" جنيه"}function remove(i){const c=cart();c.splice(i,1);setCart(c);render()}function clearCart(){setCart([]);render()}render();</script></body></html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>السلة - DevPlay</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+  <div id="top"></div>
+  
+<section class="section container">
+  <div class="layout-2">
+    <div class="glass card"><h2>السلة 🛒</h2><div id="cartItems"></div></div>
+    <aside class="glass card">
+      <h2>ملخص الطلب</h2>
+      <div class="total" id="total">0 جنيه</div>
+      <a class="btn" style="width:100%" href="checkout.html">إتمام الطلب</a>
+      <button class="btn red" style="width:100%;margin-top:10px" onclick="clearCart()">تفريغ السلة</button>
+    </aside>
+  </div>
+</section>
+
+  <div id="foot"></div>
+  <div id="toast" class="toast"></div>
+  <script>
+    document.getElementById("top").innerHTML = header("games");
+    document.getElementById("foot").innerHTML = footer();
+  </script>
+  
+<script>
+function renderCart(){const c=cart();let total=0;document.getElementById("cartItems").innerHTML=c.length?c.map((item,index)=>{total+=Number(item.price);return `<div class="item-row"><div><b>${item.game}</b><p class="muted">${item.name}<br>${item.playerId}</p></div><div><b>${item.price} جنيه</b><br><button class="btn red" onclick="removeItem(${index})">حذف</button></div></div>`}).join(""):"<p class='muted'>السلة فارغة.</p>";document.getElementById("total").textContent=total+" جنيه";}
+function removeItem(index){const c=cart();c.splice(index,1);setCart(c);renderCart();}
+function clearCart(){setCart([]);renderCart();}
+renderCart();
+</script>
+
+</body>
+</html>
