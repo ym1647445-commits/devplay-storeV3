@@ -59,7 +59,15 @@ border-radius:10px;
 <button onclick="submitOrder()">إرسال الطلب</button>
 
 </div>
-
+<script>
+localStorage.setItem("cart", JSON.stringify([
+  {
+    game: "PUBG",
+    name: "60 UC",
+    playerId: "123456"
+  }
+]));
+</script>
 <script src="config.js"></script>
 
 <script src="app.js"></script>
