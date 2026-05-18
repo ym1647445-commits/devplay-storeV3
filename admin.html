@@ -1,305 +1,241 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>DevPlay Admin</title>
-
+<title>DevPlay Admin V2</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 <script src="config.js"></script>
 
 <style>
-
-body{
-margin:0;
-font-family:Arial;
-background:#f5f5ff;
-direction:rtl;
-}
-
-.top{
-
-background:#6c3df4;
-padding:20px;
-color:white;
-font-size:28px;
-font-weight:bold;
-
-}
-
-.container{
-padding:20px;
-}
-
-.stats{
-
-display:flex;
-gap:15px;
-flex-wrap:wrap;
-margin-bottom:20px;
-
-}
-
-.card{
-
-background:white;
-padding:20px;
-border-radius:20px;
-flex:1;
-min-width:200px;
-box-shadow:0 0 10px rgba(0,0,0,.05);
-
-}
-
-.filters{
-
-display:flex;
-gap:10px;
-margin-bottom:20px;
-flex-wrap:wrap;
-
-}
-
-button{
-
-padding:10px 15px;
-border:none;
-border-radius:10px;
-background:#6c3df4;
-color:white;
-cursor:pointer;
-
-}
-
-.order{
-
-background:white;
-padding:20px;
-border-radius:20px;
-margin-bottom:15px;
-box-shadow:0 0 10px rgba(0,0,0,.05);
-
-}
-
-select{
-
-padding:10px;
-border-radius:10px;
-
-}
-
-.pending{
-color:orange;
-font-weight:bold;
-}
-
-.shipped{
-color:green;
-font-weight:bold;
-}
-
-.rejected{
-color:red;
-font-weight:bold;
-}
-
+body{margin:0;font-family:Tahoma,Arial;background:#f4f6fb;color:#111827}
+.top{background:linear-gradient(135deg,#5b35f5,#8b5cf6);color:white;padding:22px;font-size:28px;font-weight:bold}
+.container{padding:20px;max-width:1250px;margin:auto}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:15px;margin-bottom:20px}
+.stat{background:white;border-radius:22px;padding:20px;box-shadow:0 10px 30px #0001}
+.stat h2{margin:0;color:#5b35f5;font-size:32px}
+.tools{background:white;border-radius:22px;padding:16px;box-shadow:0 10px 30px #0001;margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap}
+input,select,button{padding:12px;border-radius:12px;border:1px solid #ddd;font-family:inherit}
+button{background:#5b35f5;color:white;border:0;cursor:pointer;font-weight:bold}
+button.green{background:#16a34a}
+button.red{background:#dc2626}
+button.dark{background:#111827}
+.orders{display:grid;gap:15px}
+.order{background:white;border-radius:22px;padding:20px;box-shadow:0 10px 30px #0001;border-right:6px solid #f59e0b}
+.order.shipped{border-color:#16a34a}
+.order.rejected{border-color:#dc2626}
+.orderHead{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.code{font-size:22px;font-weight:bold;color:#5b35f5}
+.items{background:#f8fafc;border-radius:15px;padding:12px;margin:12px 0;line-height:1.9}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.badge{padding:7px 12px;border-radius:999px;font-weight:bold;display:inline-block}
+.pending{background:#fff7ed;color:#c2410c}
+.shippedBadge{background:#dcfce7;color:#166534}
+.rejectedBadge{background:#fee2e2;color:#991b1b}
+.small{color:#6b7280}
 </style>
-
 </head>
 
 <body>
 
-<div class="top">
-لوحة إدارة DevPlay 👑
-</div>
+<div class="top">👑 لوحة إدارة DevPlay V2</div>
 
 <div class="container">
 
 <div class="stats">
-
-<div class="card">
-<h2 id="totalOrders">0</h2>
-<p>إجمالي الطلبات</p>
+  <div class="stat"><h2 id="totalOrders">0</h2><p>إجمالي الطلبات</p></div>
+  <div class="stat"><h2 id="todayOrders">0</h2><p>طلبات اليوم</p></div>
+  <div class="stat"><h2 id="pendingOrders">0</h2><p>قيد المراجعة</p></div>
+  <div class="stat"><h2 id="shippedOrders">0</h2><p>تم الشحن</p></div>
+  <div class="stat"><h2 id="revenue">0</h2><p>إجمالي تقريبي جنيه</p></div>
 </div>
 
-<div class="card">
-<h2 id="pendingOrders">0</h2>
-<p>قيد المراجعة</p>
+<div class="tools">
+  <input id="searchInput" placeholder="بحث برقم الطلب / الاسم / الرقم / اللعبة" oninput="applyFilters()">
+  <select id="statusFilter" onchange="applyFilters()">
+    <option value="all">كل الحالات</option>
+    <option value="pending">قيد المراجعة</option>
+    <option value="shipped">تم الشحن</option>
+    <option value="rejected">مرفوض</option>
+  </select>
+  <select id="gameFilter" onchange="applyFilters()">
+    <option value="all">كل الألعاب</option>
+  </select>
+  <button onclick="loadOrders()">تحديث</button>
 </div>
 
-<div class="card">
-<h2 id="shippedOrders">0</h2>
-<p>تم الشحن</p>
-</div>
-
-</div>
-
-<div class="filters">
-
-<button onclick="loadOrders()">الكل</button>
-
-<button onclick="filterOrders('pending')">
-قيد المراجعة
-</button>
-
-<button onclick="filterOrders('shipped')">
-تم الشحن
-</button>
-
-<button onclick="filterOrders('rejected')">
-مرفوض
-</button>
-
-</div>
-
-<div id="ordersContainer"></div>
+<div id="ordersContainer" class="orders"></div>
 
 </div>
 
 <script>
-
-const supabaseClient = supabase.createClient(
-SUPABASE_URL,
-SUPABASE_KEY
-);
-
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let allOrders = [];
 
 async function loadOrders(){
+  const { data, error } = await supabaseClient
+    .from("orders")
+    .select("*")
+    .order("id",{ascending:false});
 
-const { data, error } = await supabaseClient
-.from("orders")
-.select("*")
-.order("id",{ascending:false});
+  if(error){ alert(error.message); return; }
 
-if(error){
-
-alert(error.message);
-
-return;
-
+  allOrders = data || [];
+  fillGames();
+  updateStats(allOrders);
+  applyFilters();
 }
 
-allOrders = data;
-
-renderOrders(data);
-
-updateStats(data);
-
+function groupOrders(rows){
+  const groups = {};
+  rows.forEach(r=>{
+    const code = r.order_code || "NO-CODE";
+    if(!groups[code]) groups[code] = [];
+    groups[code].push(r);
+  });
+  return Object.values(groups);
 }
 
-function updateStats(data){
-
-document.getElementById("totalOrders").innerText =
-data.length;
-
-document.getElementById("pendingOrders").innerText =
-data.filter(o=>o.status==="pending").length;
-
-document.getElementById("shippedOrders").innerText =
-data.filter(o=>o.status==="shipped").length;
-
+function getPrice(pkg){
+  const match = String(pkg || "").match(/(\d+)\s*جنيه/);
+  return match ? Number(match[1]) : 0;
 }
 
-function renderOrders(data){
+function updateStats(rows){
+  const groups = groupOrders(rows);
+  const today = new Date().toISOString().slice(0,10);
 
-const container =
-document.getElementById("ordersContainer");
+  document.getElementById("totalOrders").innerText = groups.length;
+  document.getElementById("todayOrders").innerText =
+    groups.filter(g => String(g[0].created_at || "").slice(0,10) === today).length;
 
-container.innerHTML = "";
+  document.getElementById("pendingOrders").innerText =
+    groups.filter(g => g[0].status === "pending").length;
 
-data.forEach(order=>{
+  document.getElementById("shippedOrders").innerText =
+    groups.filter(g => g[0].status === "shipped").length;
 
-container.innerHTML += `
-
-<div class="order">
-
-<h3>
-رقم الطلب:
-${order.order_code}
-</h3>
-
-<p>
-اللعبة:
-${order.game}
-</p>
-
-<p>
-الباقة:
-${order.package}
-</p>
-
-<p>
-اللاعب:
-${order.player_id}
-</p>
-
-<p>
-العميل:
-${order.customer_name}
-</p>
-
-<p>
-الرقم:
-${order.phone}
-</p>
-
-<p class="${order.status}">
-الحالة:
-${order.status}
-</p>
-
-<select onchange="updateStatus(${order.id},this.value)">
-
-<option value="pending"
-${order.status==="pending"?"selected":""}>
-قيد المراجعة
-</option>
-
-<option value="shipped"
-${order.status==="shipped"?"selected":""}>
-تم الشحن
-</option>
-
-<option value="rejected"
-${order.status==="rejected"?"selected":""}>
-مرفوض
-</option>
-
-</select>
-
-</div>
-
-`;
-
-});
-
+  const total = rows.reduce((sum,r)=>sum + getPrice(r.package),0);
+  document.getElementById("revenue").innerText = total;
 }
 
-function filterOrders(status){
-
-const filtered =
-allOrders.filter(o=>o.status===status);
-
-renderOrders(filtered);
-
+function fillGames(){
+  const select = document.getElementById("gameFilter");
+  const games = [...new Set(allOrders.map(o=>o.game).filter(Boolean))];
+  select.innerHTML = '<option value="all">كل الألعاب</option>' +
+    games.map(g=>`<option value="${g}">${g}</option>`).join("");
 }
 
-async function updateStatus(id,status){
+function applyFilters(){
+  const q = document.getElementById("searchInput").value.toLowerCase();
+  const status = document.getElementById("statusFilter").value;
+  const game = document.getElementById("gameFilter").value;
 
-await supabaseClient
-.from("orders")
-.update({status})
-.eq("id",id);
+  let rows = allOrders.filter(o=>{
+    const text = `${o.order_code} ${o.customer_name} ${o.phone} ${o.game} ${o.player_id}`.toLowerCase();
+    const matchSearch = text.includes(q);
+    const matchStatus = status === "all" || o.status === status;
+    const matchGame = game === "all" || o.game === game;
+    return matchSearch && matchStatus && matchGame;
+  });
+
+  renderOrders(groupOrders(rows));
+}
+
+function statusText(status){
+  if(status === "shipped") return "تم الشحن";
+  if(status === "rejected") return "مرفوض";
+  return "قيد المراجعة";
+}
+
+function statusClass(status){
+  if(status === "shipped") return "shippedBadge";
+  if(status === "rejected") return "rejectedBadge";
+  return "pending";
+}
+
+function renderOrders(groups){
+  const box = document.getElementById("ordersContainer");
+
+  if(!groups.length){
+    box.innerHTML = "<div class='order'>لا توجد طلبات</div>";
+    return;
+  }
+
+  box.innerHTML = groups.map(group=>{
+    const first = group[0];
+    const total = group.reduce((sum,r)=>sum + getPrice(r.package),0);
+    const items = group.map(r=>`
+      🎮 ${r.game || "-"} — ${r.package || "-"}<br>
+      🆔 ${r.player_id || "-"}
+    `).join("<hr>");
+
+    const phone = String(first.phone || "").replace(/\D/g,"");
+    const waPhone = phone.startsWith("0") ? "20" + phone.slice(1) : phone;
+
+    const msg = encodeURIComponent(
+`تم تحديث طلبك في DevPlay ✅
+رقم الطلب: ${first.order_code}
+الحالة: ${statusText(first.status)}
+
+انضم لقناة العروض:
+https://whatsapp.com/channel/0029Vb7xg1EEwEk54XvWsl09`
+    );
+
+    return `
+    <div class="order ${first.status}">
+      <div class="orderHead">
+        <div>
+          <div class="code">${first.order_code}</div>
+          <div class="small">${first.created_at || ""}</div>
+        </div>
+        <span class="badge ${statusClass(first.status)}">${statusText(first.status)}</span>
+      </div>
+
+      <p><b>العميل:</b> ${first.customer_name || "-"}</p>
+      <p><b>رقم واتساب:</b> ${first.phone || "-"}</p>
+      <p><b>الإجمالي:</b> ${total} جنيه</p>
+
+      <div class="items">${items}</div>
+
+      <select onchange="updateStatus('${first.order_code}', this.value)">
+        <option value="pending" ${first.status==="pending"?"selected":""}>قيد المراجعة</option>
+        <option value="shipped" ${first.status==="shipped"?"selected":""}>تم الشحن</option>
+        <option value="rejected" ${first.status==="rejected"?"selected":""}>مرفوض</option>
+      </select>
+
+      <div class="actions">
+        <button onclick="copyText('${first.order_code}')">نسخ رقم الطلب</button>
+        <button onclick="copyText('${group.map(r=>r.player_id).join(" / ")}')">نسخ البيانات</button>
+        <button class="green" onclick="window.open('https://wa.me/${waPhone}?text=${msg}','_blank')">واتساب العميل</button>
+        <button class="dark" onclick="markShipped('${first.order_code}','${waPhone}','${msg}')">تم الشحن + واتساب</button>
+        <button class="red" onclick="updateStatus('${first.order_code}','rejected')">رفض</button>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+async function updateStatus(orderCode,status){
+  const { error } = await supabaseClient
+    .from("orders")
+    .update({status})
+    .eq("order_code",orderCode);
+
+  if(error){ alert(error.message); return; }
+  await loadOrders();
+}
+
+async function markShipped(code, phone, msg){
+  await updateStatus(code,"shipped");
+  window.open(`https://wa.me/${phone}?text=${msg}`,"_blank");
+}
+
+function copyText(text){
+  navigator.clipboard.writeText(text);
+  alert("تم النسخ ✅");
+}
 
 loadOrders();
-
-}
-
-loadOrders();
-
 </script>
 
 </body>
