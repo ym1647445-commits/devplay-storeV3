@@ -3,259 +3,49 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <title>إتمام الطلب</title>
-
+  <title>إتمام الطلب - DevPlay</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </head>
-
 <body>
-
   <div id="top"></div>
-
-  <section class="section container">
-    <div class="layout-2">
-
-      <div class="glass card">
-        <h2>إتمام الطلب ⚡</h2>
-
-        <div class="form">
-          <label>الاسم</label>
-          <input id="customerName" placeholder="اكتب اسمك">
-
-          <label>رقم واتساب</label>
-          <input id="phone" placeholder="010xxxxxxxx">
-
-          <label>رقم عملية التحويل</label>
-          <input id="paymentCode" placeholder="رقم العملية أو آخر 4 أرقام">
-
-          <label>كوبون خصم</label>
-          <div style="display:flex;gap:8px">
-            <input id="coupon" placeholder="DEV10">
-            <button class="btn" onclick="applyCoupon()">تطبيق</button>
-          </div>
-
-          <label>ملاحظات</label>
-          <textarea id="notes" rows="3" placeholder="أي ملاحظات إضافية"></textarea>
-
-          <button class="btn" onclick="submitOrder()">تأكيد الطلب</button>
-
-          <p class="muted">
-            الدفع على Vodafone Cash:
-            <b class="num">010 359 66569</b>
-          </p>
-        </div>
+  
+<section class="section container">
+  <div class="layout-2">
+    <div class="glass card">
+      <h2>إتمام الطلب ⚡</h2>
+      <div class="form">
+        <label>الاسم</label><input id="customerName" placeholder="اكتب اسمك">
+        <label>رقم واتساب</label><input id="phone" placeholder="010xxxxxxxx">
+        <label>رقم عملية التحويل</label><input id="paymentCode" placeholder="رقم العملية أو آخر 4 أرقام">
+        <label>كوبون خصم</label>
+        <div style="display:flex;gap:8px"><input id="coupon" placeholder="DEV10"><button class="btn" onclick="applyCoupon()">تطبيق</button></div>
+        <label>ملاحظات</label><textarea id="notes" rows="3" placeholder="أي ملاحظات إضافية"></textarea>
+        <button class="btn" onclick="submitOrder()">تأكيد الطلب</button>
+        <p class="muted">الدفع على Vodafone Cash: <b class="num">010 359 66569</b></p>
       </div>
-
-      <aside class="glass card">
-        <h2>ملخص الطلب</h2>
-
-        <div id="summary"></div>
-
-        <p>
-          الخصم:
-          <b id="discount">0</b>
-          جنيه
-        </p>
-
-        <div class="total" id="finalTotal">0 جنيه</div>
-      </aside>
-
     </div>
-  </section>
+    <aside class="glass card"><h2>ملخص الطلب</h2><div id="summary"></div><p>الخصم: <b id="discount">0</b> جنيه</p><div class="total" id="finalTotal">0 جنيه</div></aside>
+  </div>
+</section>
 
   <div id="foot"></div>
   <div id="toast" class="toast"></div>
-
   <script>
-    top.innerHTML = header("games");
-    foot.innerHTML = footer();
-
-    let discount = 0;
-    let couponCode = "";
-
-    function renderSummary() {
-      const c = cart();
-      let total = 0;
-
-      summary.innerHTML = c.map(item => {
-        total += Number(item.price);
-
-        return `
-          <div class="item-row">
-            <div>
-              <b>${item.game}</b>
-              <p class="muted">
-                ${item.name}
-                <br>
-                ${item.playerId}
-              </p>
-            </div>
-
-            <b>${item.price} جنيه</b>
-          </div>
-        `;
-      }).join("") || "<p class='muted'>السلة فارغة.</p>";
-
-      finalTotal.textContent = Math.max(0, total - discount) + " جنيه";
-      document.getElementById("discount").textContent = discount;
-    }
-
-    async function applyCoupon() {
-      const code = coupon.value.trim();
-
-      if (!code) {
-        return toast("اكتب الكوبون الأول");
-      }
-
-      const { data } = await client
-        .from("coupons")
-        .select("*")
-        .eq("code", code)
-        .eq("active", true)
-        .maybeSingle();
-
-      if (!data) {
-        return toast("الكوبون غير صحيح");
-      }
-
-      const total = cart().reduce((sum, item) => {
-        return sum + Number(item.price);
-      }, 0);
-
-      if (data.type === "percent") {
-        discount = Math.floor(total * (Number(data.value) / 100));
-      } else {
-        discount = Number(data.value);
-      }
-
-      couponCode = code;
-
-      toast("تم تطبيق الكوبون");
-      renderSummary();
-    }
-
-    async function submitOrder() {
-      const c = cart();
-
-      if (!c.length) {
-        return toast("السلة فارغة");
-      }
-
-      if (!customerName.value || !phone.value) {
-        return toast("اكتب البيانات");
-      }
-
-      const user = await currentUser();
-      const code = orderCode();
-
-      const rows = c.map(item => ({
-        user_id: user ? user.id : null,
-        customer_name: customerName.value,
-        phone: phone.value,
-        customer_phone: phone.value,
-        game: item.game,
-        package: item.name,
-        player_id: item.playerId,
-        price: Number(item.price),
-        status: "pending",
-        order_code: code,
-        payment_code: paymentCode.value,
-        coupon_code: couponCode
-      }));
-
-      const { error } = await client
-        .from("orders")
-        .insert(rows);
-
-      if (error) {
-        return alert(error.message);
-      }
-
-      if (user) {
-        await client.from("notifications").insert([{
-          user_id: user.id,
-          title: "تم استلام طلبك",
-          message: `طلبك ${code} قيد المراجعة`,
-          type: "order"
-        }]);
-      }
-
-      const total = c.reduce((sum, item) => {
-        return sum + Number(item.price);
-      }, 0) - discount;
-
-      const itemsText = c.map(item => {
-        return `
-🎮 ${item.game}
-📦 ${item.name}
-🆔 ${item.playerId}
-💰 ${item.price} جنيه
-        `;
-      }).join("\n");
-
-      const message = `
-🛒 طلب جديد من DevPlay
-
-🔢 رقم الطلب:
-${code}
-
-👤 العميل:
-${customerName.value}
-
-📱 واتساب:
-${phone.value}
-
-💳 رقم التحويل:
-${paymentCode.value || "غير مكتوب"}
-
-🎮 الطلبات:
-${itemsText}
-
-🎟️ الكوبون:
-${couponCode || "لا يوجد"}
-
-💰 الإجمالي:
-${total} جنيه
-
-📝 ملاحظات:
-${notes.value || "لا يوجد"}
-      `;
-
-      if (
-        typeof BOT_TOKEN !== "undefined" &&
-        typeof CHAT_ID !== "undefined" &&
-        BOT_TOKEN !== "8734260364:AAF6CyGRTiGbLCr0oLbJmFF9J1QsIAssquw" &&
-        CHAT_ID !== "8231091019"
-      ) {
-        fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text: message
-          })
-        });
-      }
-
-      localStorage.removeItem("cart");
-
-      toast("تم إرسال الطلب ✅");
-
-      setTimeout(() => {
-        location.href = "account.html";
-      }, 900);
-    }
-
-    renderSummary();
+    document.getElementById("top").innerHTML = header("games");
+    document.getElementById("foot").innerHTML = footer();
   </script>
+  
+<script>
+let discount=0,couponCode="";
+function renderSummary(){const c=cart();let total=0;document.getElementById("summary").innerHTML=c.map(item=>{total+=Number(item.price);return `<div class="item-row"><div><b>${item.game}</b><p class="muted">${item.name}<br>${item.playerId}</p></div><b>${item.price} جنيه</b></div>`}).join("")||"<p class='muted'>السلة فارغة.</p>";document.getElementById("finalTotal").textContent=Math.max(0,total-discount)+" جنيه";document.getElementById("discount").textContent=discount;}
+async function applyCoupon(){const code=document.getElementById("coupon").value.trim();if(!code)return toast("اكتب الكوبون الأول");const {data}=await client.from("coupons").select("*").eq("code",code).eq("active",true).maybeSingle();if(!data)return toast("الكوبون غير صحيح");const total=cart().reduce((sum,item)=>sum+Number(item.price),0);discount=data.type==="percent"?Math.floor(total*(Number(data.value)/100)):Number(data.value);couponCode=code;toast("تم تطبيق الكوبون");renderSummary();}
+async function submitOrder(){const c=cart();if(!c.length)return toast("السلة فارغة");if(!customerName.value||!phone.value)return toast("اكتب البيانات");const user=await currentUser();const code=orderCode();const rows=c.map(item=>({user_id:user?user.id:null,customer_name:customerName.value,phone:phone.value,customer_phone:phone.value,game:item.game,package:item.name,player_id:item.playerId,price:Number(item.price),status:"pending",order_code:code,payment_code:paymentCode.value,coupon_code:couponCode}));const {error}=await client.from("orders").insert(rows);if(error)return alert(error.message);if(user){await client.from("notifications").insert([{user_id:user.id,title:"تم استلام طلبك",message:`طلبك ${code} قيد المراجعة`,type:"order"}]);}const total=c.reduce((sum,item)=>sum+Number(item.price),0)-discount;const itemsText=c.map(item=>`🎮 ${item.game}\n📦 ${item.name}\n🆔 ${item.playerId}\n💰 ${item.price} جنيه`).join("\n\n");const message=`🛒 طلب جديد من DevPlay\n\n🔢 رقم الطلب: ${code}\n👤 العميل: ${customerName.value}\n📱 واتساب: ${phone.value}\n💳 رقم التحويل: ${paymentCode.value||"غير مكتوب"}\n\n🎮 الطلبات:\n${itemsText}\n\n🎟️ الكوبون: ${couponCode||"لا يوجد"}\n💰 الإجمالي: ${total} جنيه\n\n📝 ملاحظات: ${notes.value||"لا يوجد"}`;if(BOT_TOKEN&&CHAT_ID&&BOT_TOKEN!=="PUT_TELEGRAM_BOT_TOKEN_HERE"&&CHAT_ID!=="PUT_TELEGRAM_CHAT_ID_HERE"){fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({chat_id:CHAT_ID,text:message})});}localStorage.removeItem("cart");toast("تم إرسال الطلب ✅");setTimeout(()=>{location.href="account.html";},900);}
+renderSummary();
+</script>
 
 </body>
 </html>
