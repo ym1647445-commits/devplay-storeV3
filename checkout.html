@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>إتمام الطلب</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f5f5ff;
+direction:rtl;
+padding:30px;
+}
+
+.box{
+background:white;
+padding:20px;
+border-radius:20px;
+max-width:500px;
+margin:auto;
+}
+
+input{
+width:100%;
+padding:12px;
+margin-top:10px;
+}
+
+button{
+width:100%;
+padding:12px;
+margin-top:15px;
+background:#6c3df4;
+color:white;
+border:none;
+border-radius:10px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>إتمام الطلب</h2>
+
+<input type="text" id="customerName" placeholder="اسمك">
+
+<input type="text" id="customerPhone" placeholder="رقم واتساب">
+
+<button onclick="submitOrder()">إرسال الطلب</button>
+
+</div>
+
+<script src="config.js"></script>
+
+<script src="app.js"></script>
+
+</body>
+</html>
