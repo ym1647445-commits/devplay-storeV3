@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تسجيل الدخول - DevPlay</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<style>
+body{
+font-family:Arial;
+background:#f5f5ff;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+direction:rtl;
+}
+
+.box{
+background:white;
+padding:30px;
+width:320px;
+border-radius:20px;
+box-shadow:0 0 20px rgba(0,0,0,0.1);
+}
+
+h2{
+text-align:center;
+color:#6c3df4;
+}
+
+input{
+width:100%;
+padding:12px;
+margin-top:10px;
+border-radius:10px;
+border:1px solid #ccc;
+}
+
+button{
+width:100%;
+padding:12px;
+margin-top:15px;
+border:none;
+background:#6c3df4;
+color:white;
+border-radius:10px;
+font-size:16px;
+cursor:pointer;
+}
+
+p{
+text-align:center;
+margin-top:15px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="box">
+
+<h2>تسجيل الدخول</h2>
+
+<input type="email" id="email" placeholder="البريد الإلكتروني">
+
+<input type="password" id="password" placeholder="كلمة المرور">
+
+<button onclick="login()">دخول</button>
+
+<p>
+ليس لديك حساب؟
+<a href="register.html">إنشاء حساب</a>
+</p>
+
+</div>
+
+<script>
+
+const supabaseUrl = 'https://bwtchfidnvlwyikhawua.supabase.co'
+
+const supabaseKey = 'sb_publishable_u-jJWO8AsVfgxbSTXk_l8A_ldRMy4o2'
+
+const client = supabase.createClient(supabaseUrl, supabaseKey)
+
+async function login(){
+
+const email = document.getElementById('email').value
+
+const password = document.getElementById('password').value
+
+const { data, error } = await client.auth.signInWithPassword({
+email,
+password
+})
+
+if(error){
+alert(error.message)
+}else{
+alert("تم تسجيل الدخول ❤️")
+window.location.href="account.html"
+}
+
+}
+
+</script>
+
+</body>
+</html>
