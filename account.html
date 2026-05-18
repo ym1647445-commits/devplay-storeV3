@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>حسابي - DevPlay</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<style>
+body{font-family:Tahoma;background:#f5f6fb;margin:0;color:#172033}
+.box{max-width:850px;margin:40px auto;background:white;padding:25px;border-radius:20px;box-shadow:0 10px 30px #0001}
+h1{color:#6847f5}
+.card{background:#f8f9fd;border:1px solid #e8edf7;border-radius:15px;padding:15px;margin:12px 0}
+button{background:#6847f5;color:white;border:0;padding:12px 18px;border-radius:12px;cursor:pointer}
+a{color:#6847f5;font-weight:bold}
+</style>
+</head>
+<body>
+
+<div class="box">
+  <h1>حسابي في DevPlay</h1>
+  <p id="userInfo">جاري تحميل الحساب...</p>
+
+  <h2>سجل الشحن</h2>
+  <div id="orders">جاري تحميل الطلبات...</div>
+
+  <button onclick="logout()">تسجيل خروج</button>
+  <br><br>
+  <a href="index.html">العودة للرئيسية</a>
+</div>
+
+<script>
+const supabaseUrl = "https://bwtchfidnvlwyikhawua.supabase.co";
+const supabaseKey = "PASTE_KEY_HERE";
+const client = supabase.createClient(supabaseUrl, supabaseKey);
+
+async function loadAccount(){
+  const { data:{ user }, error } = await client.auth.getUser();
+
+  if(!user){
+    document.getElementById("userInfo").innerHTML =
+      'أنتِ غير مسجلة دخول. <a href="login.html">تسجيل الدخول</a>';
+    document.getElementById("orders").innerHTML = "";
+    return;
+  }
+
+  document.getElementById("userInfo").innerHTML =
+    "مرحبًا، " + (user.user_metadata.name || user.email) + "<br>البريد: " + user.email;
+
+  const { data: orders, error: ordersError } = await client
+    .from("orders")
+    .select("*")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending:false });
+
+  if(ordersError){
+    document.getElementById("orders").innerHTML = "حصل خطأ في تحميل الطلبات.";
+    return;
+  }
+
+  if(!orders || orders.length === 0){
+    document.getElementById("orders").innerHTML = "لا يوجد طلبات بعد.";
+    return;
+  }
+
+  document.getElementById("orders").innerHTML = orders.map(o => `
+    <div class="card">
+      <b>رقم الطلب:</b> ${o.order_code || "-"}<br>
+      <b>اللعبة:</b> ${o.game || "-"}<br>
+      <b>الباقة:</b> ${o.package || "-"}<br>
+      <b>الحالة:</b> ${o.status || "pending"}<br>
+      <b>البيانات:</b> ${o.player_id || "-"}
+    </div>
+  `).join("");
+}
+
+async function logout(){
+  await client.auth.signOut();
+  window.location.href = "login.html";
+}
+
+loadAccount();
+</script>
+
+</body>
+</html>
