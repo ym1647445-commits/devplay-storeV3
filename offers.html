@@ -1,1 +1,36 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>العروض</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script></head><body><div id="top"></div><section class="section container"><div class="section-head"><h2>العروض والإشعارات 🔥</h2></div><div class="grid" id="posts"></div><div class="section-head"><h2>تقييمات العملاء ⭐</h2></div><div class="grid" id="reviews"></div></section><div id="foot"></div><div id="toast" class="toast"></div><script>top.innerHTML=header("offers");foot.innerHTML=footer();</script><script>(async()=>{const {data}=await client.from("posts").select("*").order("created_at",{ascending:false});posts.innerHTML=(data||[]).map(p=>`<div class="card glass"><span class="badge">${p.type==="offer"?"🔥 عرض":"🔔 إشعار"}</span><h3>${p.title}</h3><p class="muted">${p.message}</p></div>`).join("")||"<p class='muted'>لا توجد عروض.</p>";const {data:rev}=await client.from("reviews").select("*").order("created_at",{ascending:false}).limit(8);reviews.innerHTML=(rev||[]).map(r=>`<div class="card glass"><h3>${"⭐".repeat(Number(r.rating||5))}</h3><p>${r.comment}</p><p class="muted">${r.customer_name||"عميل DevPlay"}</p></div>`).join("")||"<p class='muted'>لا توجد تقييمات.</p>"})();</script></body></html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>العروض - DevPlay</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+  <div id="top"></div>
+  
+<section class="section container">
+  <div class="section-head"><h2>العروض والإشعارات 🔥</h2></div>
+  <div class="grid" id="posts"></div>
+  <div class="section-head"><h2>تقييمات العملاء ⭐</h2></div>
+  <div class="grid" id="reviews"></div>
+</section>
+
+  <div id="foot"></div>
+  <div id="toast" class="toast"></div>
+  <script>
+    document.getElementById("top").innerHTML = header("offers");
+    document.getElementById("foot").innerHTML = footer();
+  </script>
+  
+<script>
+async function loadOffers(){const {data}=await client.from("posts").select("*").order("created_at",{ascending:false});document.getElementById("posts").innerHTML=(data||[]).map(p=>`<div class="card glass"><span class="badge">${p.type==="offer"?"🔥 عرض":"🔔 إشعار"}</span><h3>${p.title}</h3><p class="muted">${p.message}</p></div>`).join("")||"<p class='muted'>لا توجد عروض.</p>";const {data:rev}=await client.from("reviews").select("*").order("created_at",{ascending:false}).limit(8);document.getElementById("reviews").innerHTML=(rev||[]).map(r=>`<div class="card glass"><h3>${"⭐".repeat(Number(r.rating||5))}</h3><p>${r.comment}</p><p class="muted">${r.customer_name||"عميل DevPlay"}</p></div>`).join("")||"<p class='muted'>لا توجد تقييمات.</p>";}
+loadOffers();
+</script>
+
+</body>
+</html>
