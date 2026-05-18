@@ -1,1 +1,39 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>تتبع الطلب</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script></head><body><div id="top"></div><section class="section container"><div class="glass card"><h2>تتبع الطلب</h2><div style="display:flex;gap:8px"><input id="code" placeholder="DP123456"><button class="btn" onclick="track()">تتبع</button></div><div id="result" style="margin-top:16px"></div></div><div class="glass card"><h2>آخر الإشعارات</h2><div id="trackPosts"></div></div></section><div id="foot"></div><div id="toast" class="toast"></div><script>top.innerHTML=header("track");foot.innerHTML=footer();</script><script>async function track(){const {data}=await client.from("orders").select("*").eq("order_code",code.value.trim());result.innerHTML=data&&data.length?`<h3>${code.value}</h3><span class="status ${statusClass(data[0].status)}">${statusText(data[0].status)}</span>${data.map(o=>`<div class="item-row"><b>${o.game}</b><span>${o.package} - ${o.player_id}</span></div>`).join("")}<a class="btn" href="games.html">شحن مرة أخرى</a>`:"لم يتم العثور على الطلب"}(async()=>{const {data}=await client.from("posts").select("*").order("created_at",{ascending:false}).limit(5);trackPosts.innerHTML=(data||[]).map(p=>`<div class="card glass"><b>${p.title}</b><p class="muted">${p.message}</p></div>`).join("")||"لا توجد إشعارات"})()</script></body></html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تتبع الطلب - DevPlay</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+  <div id="top"></div>
+  
+<section class="section container">
+  <div class="glass card">
+    <h2>تتبع الطلب</h2>
+    <div style="display:flex;gap:8px"><input id="code" placeholder="DP123456"><button class="btn" onclick="track()">تتبع</button></div>
+    <div id="result" style="margin-top:16px"></div>
+  </div>
+  <div class="glass card"><h2>آخر الإشعارات</h2><div id="trackPosts"></div></div>
+</section>
+
+  <div id="foot"></div>
+  <div id="toast" class="toast"></div>
+  <script>
+    document.getElementById("top").innerHTML = header("track");
+    document.getElementById("foot").innerHTML = footer();
+  </script>
+  
+<script>
+async function track(){const {data}=await client.from("orders").select("*").eq("order_code",code.value.trim());document.getElementById("result").innerHTML=data&&data.length?`<h3>${code.value}</h3><span class="status ${statusClass(data[0].status)}">${statusText(data[0].status)}</span>${data.map(o=>`<div class="item-row"><b>${o.game}</b><span>${o.package} - ${o.player_id}</span></div>`).join("")}<a class="btn" href="games.html">شحن مرة أخرى</a>`:"لم يتم العثور على الطلب";}
+async function loadTrackPosts(){const {data}=await client.from("posts").select("*").order("created_at",{ascending:false}).limit(5);document.getElementById("trackPosts").innerHTML=(data||[]).map(p=>`<div class="card glass"><b>${p.title}</b><p class="muted">${p.message}</p></div>`).join("")||"لا توجد إشعارات";}
+loadTrackPosts();
+</script>
+
+</body>
+</html>
