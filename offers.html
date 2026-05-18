@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>العروض - DevPlay</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="config.js"></script>
+<style>
+body{font-family:Tahoma;background:#f5f6fb;margin:0;color:#111827}
+header{background:white;padding:15px 25px;box-shadow:0 5px 20px #0001}
+.box{max-width:900px;margin:30px auto;padding:0 20px}
+.card{background:white;border-radius:24px;padding:20px;margin-bottom:15px;box-shadow:0 10px 30px #0001;border-right:6px solid #5b35f5}
+.offer{border-color:#ff7a18}
+.notice{border-color:#5b35f5}
+a{color:#5b35f5;font-weight:bold}
+</style>
+</head>
+<body>
+
+<header>
+<a href="index.html">الرئيسية</a> |
+<a href="games.html">شحن الألعاب</a> |
+<a href="track.html">تتبع الطلب</a>
+</header>
+
+<div class="box">
+<h1>العروض والإشعارات</h1>
+<div id="posts">جاري التحميل...</div>
+</div>
+
+<script>
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function loadPosts(){
+  const { data, error } = await client
+    .from("posts")
+    .select("*")
+    .order("created_at",{ascending:false});
+
+  if(error){
+    document.getElementById("posts").innerHTML = error.message;
+    return;
+  }
+
+  if(!data.length){
+    document.getElementById("posts").innerHTML = "لا توجد عروض حاليًا.";
+    return;
+  }
+
+  document.getElementById("posts").innerHTML = data.map(p=>`
+    <div class="card ${p.type}">
+      <b>${p.type === "offer" ? "🔥 عرض" : "🔔 إشعار"}</b>
+      <h2>${p.title}</h2>
+      <p>${p.message}</p>
+      <small>${new Date(p.created_at).toLocaleString("ar-EG")}</small>
+    </div>
+  `).join("");
+}
+
+loadPosts();
+</script>
+
+</body>
+</html>

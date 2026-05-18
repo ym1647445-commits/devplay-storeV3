@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>تتبع الطلب - DevPlay</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="config.js"></script>
+<style>
+body{font-family:Tahoma;background:#f5f6fb;margin:0;color:#111827}
+header{background:white;padding:15px 25px;box-shadow:0 5px 20px #0001}
+.container{max-width:950px;margin:30px auto;padding:0 20px}
+.box,.post{background:white;border-radius:24px;padding:22px;margin-bottom:18px;box-shadow:0 10px 30px #0001}
+input{width:100%;padding:13px;border:1px solid #ddd;border-radius:13px;margin-top:10px}
+button{background:#5b35f5;color:white;border:0;border-radius:13px;padding:13px 20px;margin-top:12px;cursor:pointer;font-weight:bold}
+.status{display:inline-block;padding:8px 14px;border-radius:999px;background:#fff7ed;color:#c2410c;font-weight:bold}
+.done{background:#dcfce7;color:#166534}
+.rejected{background:#fee2e2;color:#991b1b}
+.post{border-right:6px solid #5b35f5}
+.offer{border-color:#ff7a18}
+a{color:#5b35f5;font-weight:bold}
+pre{white-space:pre-wrap;background:#f8fafc;border-radius:15px;padding:12px}
+</style>
+</head>
+<body>
+
+<header>
+<a href="index.html">الرئيسية</a> |
+<a href="games.html">شحن الألعاب</a> |
+<a href="offers.html">العروض</a>
+</header>
+
+<div class="container">
+
+<div class="box">
+<h1>تتبع الطلب</h1>
+<p>اكتب رقم الطلب مثل: DP-123456</p>
+
+<input id="orderCode" placeholder="رقم الطلب">
+<button onclick="trackOrder()">تتبع</button>
+
+<div id="result"></div>
+</div>
+
+<div class="box">
+<h2>آخر العروض والإشعارات</h2>
+<div id="posts">جاري التحميل...</div>
+</div>
+
+</div>
+
+<script>
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function trackOrder(){
+  const code = document.getElementById("orderCode").value.trim();
+
+  const { data, error } = await client
+    .from("orders")
+    .select("*")
+    .eq("order_code",code);
+
+  if(error){
+    document.getElementById("result").innerHTML = error.message;
+    return;
+  }
+
+  if(!data.length){
+    document.getElementById("result").innerHTML = "<p>لم يتم العثور على الطلب.</p>";
+    return;
+  }
+
+  const status = data[0].status;
+  let statusClass = "status";
+  if(status === "shipped" || status === "done") statusClass += " done";
+  if(status === "rejected") statusClass += " rejected";
+
+  document.getElementById("result").innerHTML = `
+    <div class="box">
+      <h2>طلب رقم ${code}</h2>
+      <p class="${statusClass}">${status}</p>
+      <pre>${data.map(o=>`${o.game} - ${o.package} - ${o.player_id}`).join("\n")}</pre>
+
+      <a href="games.html"><button>شحن مرة أخرى</button></a>
+      <a href="https://whatsapp.com/channel/0029Vb7xg1EEwEk54XvWsl09" target="_blank"><button>انضم لقناة العروض</button></a>
+    </div>
+  `;
+}
+
+async function loadPosts(){
+  const { data, error } = await client
+    .from("posts")
+    .select("*")
+    .order("created_at",{ascending:false})
+    .limit(5);
+
+  if(error){
+    document.getElementById("posts").innerHTML = error.message;
+    return;
+  }
+
+  if(!data.length){
+    document.getElementById("posts").innerHTML = "لا توجد إشعارات حاليًا.";
+    return;
+  }
+
+  document.getElementById("posts").innerHTML = data.map(p=>`
+    <div class="post ${p.type}">
+      <b>${p.type === "offer" ? "🔥 عرض" : "🔔 إشعار"}</b>
+      <h3>${p.title}</h3>
+      <p>${p.message}</p>
+    </div>
+  `).join("");
+}
+
+loadPosts();
+</script>
+
+</body>
+</html>
