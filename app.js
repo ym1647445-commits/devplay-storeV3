@@ -1,46 +1,13 @@
-const cart = JSON.parse(localStorage.getItem("cart")) || [];
 
-async function submitOrder(){
-
-const customerName = document.getElementById("customerName").value;
-
-const customerPhone = document.getElementById("customerPhone").value;
-
-const authClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-
-const { data: { user } } = await authClient.auth.getUser();
-
-const userId = user ? user.id : null;
-
-const orderId = "DP" + Math.floor(Math.random()*999999);
-
-const rows = cart.map(item => ({
-user_id: userId,
-customer_name: customerName,
-phone: customerPhone,
-game: item.game,
-package: item.name,
-player_id: item.playerId,
-status: "pending",
-order_code: orderId
-}));
-
-const { error } = await authClient
-.from("orders")
-.insert(rows);
-
-if(error){
-
-alert(error.message);
-
-}else{
-
-alert("تم إرسال الطلب ❤️ رقم الطلب: " + orderId);
-
-localStorage.removeItem("cart");
-
-window.location.href="account.html";
-
-}
-
-}
+const client=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
+const PRODUCTS=[
+{game:"PUBG",name:"60 UC",price:50,img:"pubg.png",need:"ID ببجي",popular:true},{game:"PUBG",name:"325 UC",price:220,img:"pubg.png",need:"ID ببجي",popular:true},{game:"PUBG",name:"660 UC",price:430,img:"pubg.png",need:"ID ببجي"},{game:"Free Fire",name:"100 جوهرة",price:65,img:"free_fire.png",need:"ID فري فاير",popular:true},{game:"COD",name:"30 CP",price:25,img:"callofduty.png",need:"ID كول أوف ديوتي",popular:true},{game:"COD",name:"420 CP",price:240,img:"callofduty.png",need:"ID كول أوف ديوتي",popular:true},{game:"COD",name:"880 CP",price:570,img:"callofduty.png",need:"ID كول أوف ديوتي"},{game:"COD",name:"2400 CP",price:1150,img:"callofduty.png",need:"ID كول أوف ديوتي"},{game:"COD",name:"5000 CP",price:2300,img:"callofduty.png",need:"ID كول أوف ديوتي"},{game:"COD",name:"10800 CP",price:4550,img:"callofduty.png",need:"ID كول أوف ديوتي"},{game:"COD",name:"21600 CP",price:9100,img:"callofduty.png",need:"ID كول أوف ديوتي"},{game:"COD",name:"Battle Pass Premium",price:150,img:"callofduty.png",need:"ID كول أوف ديوتي",popular:true},{game:"COD",name:"Battle Pass Premium Bundle",price:320,img:"callofduty.png",need:"ID كول أوف ديوتي"},{game:"Yalla Ludo",name:"830 ماسة",price:140,img:"yallalado.png",need:"ID اللعبة",popular:true},{game:"Yalla Ludo",name:"2320 ماسة",price:320,img:"yallalado.png",need:"ID اللعبة"},{game:"Yalla Ludo",name:"5150 ماسة",price:630,img:"yallalado.png",need:"ID اللعبة"},{game:"Honor of Kings",name:"16 توكن",price:15,img:"honor.png",need:"ID اللعبة",popular:true},{game:"Honor of Kings",name:"80 توكن",price:65,img:"honor.png",need:"ID اللعبة"},{game:"Honor of Kings",name:"240 توكن",price:180,img:"honor.png",need:"ID اللعبة"},{game:"Steam",name:"5$",price:320,img:"steam.png",need:"إيميل Steam",popular:true},{game:"Steam",name:"10$",price:640,img:"steam.png",need:"إيميل Steam"},{game:"Steam",name:"20$",price:1150,img:"steam.png",need:"إيميل Steam"},{game:"Anghami",name:"اشتراك شهر",price:160,img:"Anghami.png",need:"رقم موبايل أنغامي",popular:true},{game:"Anghami",name:"اشتراك 3 شهور",price:450,img:"Anghami.png",need:"رقم موبايل أنغامي"}];
+function cart(){return JSON.parse(localStorage.getItem("cart")||"[]")}function setCart(c){localStorage.setItem("cart",JSON.stringify(c));updateCartCount()}function updateCartCount(){document.querySelectorAll("[data-cart-count]").forEach(e=>e.textContent=cart().length)}function toast(msg){let t=document.getElementById("toast");if(!t){t=document.createElement("div");t.id="toast";t.className="toast";document.body.appendChild(t)}t.textContent=msg;t.style.display="block";setTimeout(()=>t.style.display="none",2500)}
+function header(active=""){return `<header class="header"><div class="container navbar"><a class="brand" href="index.html"><img src="logo.png" onerror="this.style.display='none'">Dev<span>Play</span></a><nav class="nav"><a class="${active==='home'?'active':''}" href="index.html">الرئيسية</a><a class="${active==='games'?'active':''}" href="games.html">شحن الألعاب</a><a class="${active==='offers'?'active':''}" href="offers.html">العروض</a><a class="${active==='track'?'active':''}" href="track.html">تتبع الطلب</a><a class="${active==='account'?'active':''}" href="account.html">حسابي</a><a class="${active==='admin'?'active':''}" href="admin.html">الإدارة</a></nav><a class="pill" href="cart.html">السلة <b data-cart-count>0</b></a></div></header>`}
+function footer(){return `<footer class="footer"><div class="container footer-grid"><div><h3>DevPlay Studio</h3><p class="muted">متجر شحن ألعاب واشتراكات رقمية.</p></div><div><h3>الدفع</h3><p>Vodafone Cash</p><h3 class="num">${CASH_NUMBER}</h3></div><div><h3>تواصل</h3><p><a target="_blank" href="${WHATSAPP_CHANNEL}">قناة واتساب</a></p><p><a target="_blank" href="${FACEBOOK_URL}">فيسبوك</a></p></div></div></footer>`}
+async function currentUser(){const {data:{user}}=await client.auth.getUser();return user}
+function productCard(p,i){return `<div class="card glass">${p.popular?'<span class="badge">الأكثر طلبًا</span>':''}<img src="${p.img}" onerror="this.src='logo.png'"><h3>${p.game}</h3><p class="muted">${p.name}</p><div class="price">${p.price} جنيه</div><button class="btn" onclick="openAddModal(${i})">+ أضف للسلة</button></div>`}
+let selectedProduct=null;function openAddModal(i){selectedProduct=PRODUCTS[i];modalInfo.innerHTML=`<h3>${selectedProduct.game}</h3><p>${selectedProduct.name}</p><p class="muted">المطلوب: ${selectedProduct.need}</p>`;playerInput.placeholder=selectedProduct.need;playerInput.value="";modal.style.display="flex"}function closeModal(){modal.style.display="none"}
+async function confirmAdd(){const v=playerInput.value.trim();if(!v)return toast("اكتب البيانات المطلوبة");const c=cart();c.push({game:selectedProduct.game,name:selectedProduct.name,price:selectedProduct.price,playerId:v});setCart(c);const user=await currentUser();if(user)await client.from("saved_ids").insert([{user_id:user.id,game:selectedProduct.game,label:selectedProduct.need,value:v}]);closeModal();toast("تمت الإضافة للسلة ✅")}
+function statusText(s){return s==="shipped"?"تم الشحن":s==="rejected"?"مرفوض":"قيد المراجعة"}function statusClass(s){return s==="shipped"?"shipped":s==="rejected"?"rejected":"pending"}function orderCode(){return "DP"+Math.floor(100000+Math.random()*899999)}
+document.addEventListener("DOMContentLoaded",()=>{updateCartCount();if("serviceWorker"in navigator)navigator.serviceWorker.register("sw.js").catch(()=>{})});
