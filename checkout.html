@@ -1,76 +1,504 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>إتمام الطلب</title>
+<title>إتمام الطلب - DevPlay</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+<script src="config.js"></script>
 
 <style>
 
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
 body{
-font-family:Arial;
-background:#f5f5ff;
-direction:rtl;
-padding:30px;
+font-family:Tahoma;
+background:#050816;
+overflow-x:hidden;
+min-height:100vh;
+color:white;
+position:relative;
+}
+
+/* خلفية متحركة */
+body::before{
+content:"";
+position:fixed;
+inset:0;
+background:
+radial-gradient(circle at 20% 20%,#2563eb55,transparent 25%),
+radial-gradient(circle at 80% 30%,#7c3aed55,transparent 25%),
+radial-gradient(circle at 50% 80%,#1d4ed855,transparent 30%);
+animation:bgMove 12s ease infinite;
+filter:blur(70px);
+z-index:-2;
+}
+
+/* برق */
+body::after{
+content:"";
+position:fixed;
+inset:0;
+background-image:
+linear-gradient(
+120deg,
+transparent 0%,
+rgba(59,130,246,.15) 45%,
+rgba(96,165,250,.45) 50%,
+rgba(59,130,246,.15) 55%,
+transparent 100%
+);
+
+background-size:300% 300%;
+animation:lightning 5s linear infinite;
+mix-blend-mode:screen;
+z-index:-1;
+}
+
+@keyframes lightning{
+
+0%{
+background-position:0% 50%;
+opacity:.2;
+}
+
+50%{
+background-position:100% 50%;
+opacity:1;
+}
+
+100%{
+background-position:0% 50%;
+opacity:.2;
+}
+
+}
+
+@keyframes bgMove{
+
+0%{
+transform:translate(0,0);
+}
+
+50%{
+transform:translate(-30px,20px);
+}
+
+100%{
+transform:translate(0,0);
+}
+
+}
+
+header{
+padding:20px 30px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+background:#00000055;
+backdrop-filter:blur(20px);
+border-bottom:1px solid #ffffff11;
+position:sticky;
+top:0;
+z-index:100;
+}
+
+.logo{
+font-size:30px;
+font-weight:bold;
+color:white;
+}
+
+.logo span{
+color:#7c3aed;
+}
+
+nav{
+display:flex;
+gap:20px;
+flex-wrap:wrap;
+}
+
+nav a{
+color:white;
+text-decoration:none;
+font-weight:bold;
+transition:.3s;
+}
+
+nav a:hover{
+color:#60a5fa;
+}
+
+.container{
+max-width:1200px;
+margin:auto;
+padding:40px 20px;
+display:grid;
+grid-template-columns:1.4fr .8fr;
+gap:25px;
 }
 
 .box{
-background:white;
-padding:20px;
-border-radius:20px;
-max-width:500px;
-margin:auto;
+background:rgba(15,23,42,.75);
+backdrop-filter:blur(18px);
+border:1px solid rgba(255,255,255,.08);
+border-radius:28px;
+padding:25px;
+box-shadow:
+0 0 20px rgba(59,130,246,.15),
+0 0 40px rgba(37,99,235,.08);
 }
 
-input{
+h1{
+font-size:38px;
+margin-bottom:25px;
+}
+
+.sectionTitle{
+margin-bottom:20px;
+font-size:26px;
+}
+
+input,
+textarea{
 width:100%;
-padding:12px;
+padding:16px;
+margin-top:12px;
+border-radius:15px;
+border:1px solid #2563eb55;
+background:#0f172a;
+color:white;
+font-size:15px;
+outline:none;
+}
+
+input:focus,
+textarea:focus{
+border-color:#60a5fa;
+box-shadow:0 0 15px #2563eb55;
+}
+
+.totalBox{
+background:#0b1220;
+padding:18px;
+border-radius:18px;
+margin-top:20px;
+font-size:22px;
+font-weight:bold;
+display:flex;
+justify-content:space-between;
+}
+
+.orderItem{
+display:flex;
+justify-content:space-between;
+align-items:center;
+padding:14px;
+border-bottom:1px solid #ffffff11;
+}
+
+.orderItem:last-child{
+border:none;
+}
+
+.game{
+font-size:18px;
+font-weight:bold;
+}
+
+.price{
+color:#60a5fa;
+font-weight:bold;
+}
+
+.features{
+display:grid;
+grid-template-columns:repeat(2,1fr);
+gap:15px;
+margin-top:20px;
+}
+
+.feature{
+background:#0b1220;
+padding:18px;
+border-radius:18px;
+text-align:center;
+border:1px solid #ffffff11;
+}
+
+.feature h3{
 margin-top:10px;
 }
 
-button{
+.submit{
 width:100%;
-padding:12px;
-margin-top:15px;
-background:#6c3df4;
-color:white;
+padding:18px;
+margin-top:25px;
 border:none;
-border-radius:10px;
+border-radius:18px;
+font-size:20px;
+font-weight:bold;
+cursor:pointer;
+background:linear-gradient(90deg,#2563eb,#7c3aed);
+color:white;
+transition:.3s;
+box-shadow:0 0 25px #2563eb55;
+}
+
+.submit:hover{
+transform:translateY(-3px) scale(1.02);
+box-shadow:0 0 35px #3b82f6aa;
+}
+
+.note{
+margin-top:15px;
+opacity:.7;
+font-size:14px;
+text-align:center;
+}
+
+.whatsapp{
+position:fixed;
+bottom:20px;
+left:20px;
+background:#22c55e;
+color:white;
+padding:15px 20px;
+border-radius:999px;
+font-weight:bold;
+text-decoration:none;
+box-shadow:0 0 25px #22c55e66;
+}
+
+@media(max-width:900px){
+
+.container{
+grid-template-columns:1fr;
+}
+
+h1{
+font-size:30px;
+}
+
 }
 
 </style>
-
 </head>
 
 <body>
 
+<header>
+
+<div class="logo">
+🎮 Dev<span>Play</span>
+</div>
+
+<nav>
+<a href="index.html">الرئيسية</a>
+<a href="games.html">الألعاب</a>
+<a href="offers.html">العروض</a>
+<a href="track.html">تتبع الطلب</a>
+<a href="account.html">حسابي</a>
+</nav>
+
+</header>
+
+<div class="container">
+
 <div class="box">
 
-<h2>إتمام الطلب</h2>
+<h1>⚡ إتمام الطلب</h1>
 
-<input type="text" id="customerName" placeholder="اسمك">
+<h2 class="sectionTitle">
+بيانات العميل
+</h2>
 
-<input type="text" id="customerPhone" placeholder="رقم واتساب">
+<input
+type="text"
+id="customerName"
+placeholder="الاسم الكامل"
+>
 
-<button onclick="submitOrder()">إرسال الطلب</button>
+<input
+type="text"
+id="customerPhone"
+placeholder="رقم الهاتف"
+>
+
+<textarea
+id="notes"
+rows="4"
+placeholder="ملاحظات إضافية (اختياري)"
+></textarea>
+
+<div class="features">
+
+<div class="feature">
+⚡
+<h3>تنفيذ سريع</h3>
+</div>
+
+<div class="feature">
+🛡️
+<h3>طلبات آمنة</h3>
+</div>
+
+<div class="feature">
+🎮
+<h3>شحن فوري</h3>
+</div>
+
+<div class="feature">
+💬
+<h3>دعم دائم</h3>
+</div>
 
 </div>
-<script>
-localStorage.setItem("cart", JSON.stringify([
-  {
-    game: "PUBG",
-    name: "60 UC",
-    playerId: "123456"
-  }
-]));
-</script>
-<script src="config.js"></script>
 
-<script src="app.js"></script>
+<button class="submit" onclick="submitOrder()">
+تأكيد الطلب والدفع
+</button>
+
+<p class="note">
+بالضغط على الزر فأنت توافق على شروط المتجر
+</p>
+
+</div>
+
+<div class="box">
+
+<h2 class="sectionTitle">
+ملخص الطلب
+</h2>
+
+<div id="cartItems"></div>
+
+<div class="totalBox">
+<span>الإجمالي</span>
+<span id="totalPrice">0 جنيه</span>
+</div>
+
+</div>
+
+</div>
+
+<a
+class="whatsapp"
+target="_blank"
+href="https://wa.me/"
+>
+واتساب
+</a>
+
+<script>
+
+const client =
+supabase.createClient(
+SUPABASE_URL,
+SUPABASE_KEY
+);
+
+let cart =
+JSON.parse(localStorage.getItem("cart")) || [];
+
+function renderCart(){
+
+let html = "";
+let total = 0;
+
+cart.forEach(item=>{
+
+total += Number(item.price);
+
+html += `
+
+<div class="orderItem">
+
+<div>
+
+<div class="game">
+${item.game}
+</div>
+
+<div>
+${item.name}
+</div>
+
+<div style="opacity:.7;font-size:14px">
+${item.playerId}
+</div>
+
+</div>
+
+<div class="price">
+${item.price} جنيه
+</div>
+
+</div>
+
+`;
+
+});
+
+document.getElementById("cartItems").innerHTML =
+html;
+
+document.getElementById("totalPrice").innerText =
+total + " جنيه";
+
+}
+
+async function submitOrder(){
+
+const name =
+document.getElementById("customerName").value;
+
+const phone =
+document.getElementById("customerPhone").value;
+
+if(!name || !phone){
+
+alert("اكتب البيانات كاملة");
+
+return;
+
+}
+
+for(const item of cart){
+
+await client.from("orders").insert([{
+
+customer_name:name,
+customer_phone:phone,
+game:item.game,
+package:item.name,
+player_id:item.playerId,
+status:"pending",
+order_code:"DP" + Math.floor(Math.random()*999999)
+
+}]);
+
+}
+
+localStorage.removeItem("cart");
+
+alert("تم إرسال الطلب بنجاح ❤️");
+
+window.location.href =
+"account.html";
+
+}
+
+renderCart();
+
+</script>
 
 </body>
 </html>
