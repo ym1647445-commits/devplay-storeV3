@@ -3,7 +3,7 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 const ADMIN_PASSWORD = "X3%k5yg-@siE/3J";
 
-const BOT_TOKEN = "8734260364:AAF6CyGRTiGbLCr0oLbJmFF9J1QsIAssquw";
+const BOT_TOKEN = "8734260364:AAFGJyGzTUD31u5fpvxcWwXxe1p05h4_LDw";
 const CHAT_ID = "8231091019";
 
 const WHATSAPP_CHANNEL = "https://whatsapp.com/channel/0029Vb7xg1EEwEk54XvWsl09";
