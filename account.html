@@ -1,216 +1,43 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
   <title>حسابي - DevPlay</title>
-
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </head>
-
 <body>
-
   <div id="top"></div>
-
-  <section class="section container">
-
-    <div class="glass card">
-      <h2>حسابي في DevPlay</h2>
-
-      <div id="userInfo" class="muted">
-        جاري تحميل الحساب...
-      </div>
-
-      <br>
-
-      <button class="btn red" onclick="logout()">
-        تسجيل خروج
-      </button>
-    </div>
-
-    <div class="grid" style="margin-top:16px">
-
-      <div class="glass card">
-        <h3 id="ordersCount">0</h3>
-        <p class="muted">عدد الطلبات</p>
-      </div>
-
-      <div class="glass card">
-        <h3 id="spent">0 جنيه</h3>
-        <p class="muted">إجمالي الشحن</p>
-      </div>
-
-      <div class="glass card">
-        <h3 id="lastStatus">-</h3>
-        <p class="muted">آخر حالة</p>
-      </div>
-
-    </div>
-
-    <div class="layout-2" style="margin-top:18px">
-
-      <div class="glass card">
-        <h2>سجل الشحن</h2>
-        <div id="orders"></div>
-      </div>
-
-      <aside class="glass card">
-
-        <h2>إشعاراتي 🔔</h2>
-        <div id="notifications"></div>
-
-        <br>
-
-        <h2>بيانات محفوظة 🆔</h2>
-        <div id="savedIds"></div>
-
-      </aside>
-
-    </div>
-
-  </section>
+  
+<section class="section container">
+  <div class="glass card"><h2>حسابي في DevPlay</h2><div id="userInfo" class="muted">جاري تحميل الحساب...</div><br><button class="btn red" onclick="logout()">تسجيل خروج</button></div>
+  <div class="grid" style="margin-top:16px">
+    <div class="glass card"><h3 id="ordersCount">0</h3><p class="muted">عدد الطلبات</p></div>
+    <div class="glass card"><h3 id="spent">0 جنيه</h3><p class="muted">إجمالي الشحن</p></div>
+    <div class="glass card"><h3 id="lastStatus">-</h3><p class="muted">آخر حالة</p></div>
+  </div>
+  <div class="layout-2" style="margin-top:18px">
+    <div class="glass card"><h2>سجل الشحن</h2><div id="orders"></div></div>
+    <aside class="glass card"><h2>إشعاراتي 🔔</h2><div id="notifications"></div><br><h2>بيانات محفوظة 🆔</h2><div id="savedIds"></div></aside>
+  </div>
+</section>
 
   <div id="foot"></div>
   <div id="toast" class="toast"></div>
-
   <script>
     document.getElementById("top").innerHTML = header("account");
     document.getElementById("foot").innerHTML = footer();
-
-    async function logout() {
-      await client.auth.signOut();
-      location.href = "login.html";
-    }
-
-    async function loadAccount() {
-      const user = await currentUser();
-
-      if (!user) {
-        document.getElementById("userInfo").innerHTML = `
-          أنت غير مسجل دخول.
-          <br><br>
-          <a class="btn" href="login.html">تسجيل الدخول</a>
-        `;
-        return;
-      }
-
-      document.getElementById("userInfo").innerHTML = `
-        مرحبًا <b>${user.user_metadata.name || user.email}</b>
-        <br>
-        ${user.email}
-      `;
-
-      const { data: ordersData, error: ordersError } = await client
-        .from("orders")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (ordersError) {
-        document.getElementById("orders").innerHTML = ordersError.message;
-        return;
-      }
-
-      const ordersArr = ordersData || [];
-
-      const uniqueOrders = [...new Set(
-        ordersArr.map(o => o.order_code)
-      )];
-
-      document.getElementById("ordersCount").textContent =
-        uniqueOrders.length;
-
-      document.getElementById("spent").textContent =
-        ordersArr.reduce((sum, order) => {
-          return sum + Number(order.price || 0);
-        }, 0) + " جنيه";
-
-      document.getElementById("lastStatus").textContent =
-        ordersArr[0] ? statusText(ordersArr[0].status) : "-";
-
-      if (!ordersArr.length) {
-        document.getElementById("orders").innerHTML =
-          "<p class='muted'>لا يوجد طلبات بعد.</p>";
-      } else {
-        document.getElementById("orders").innerHTML =
-          ordersArr.map(order => `
-            <div class="card glass">
-
-              <h3>
-                ${order.order_code}
-                <span class="status ${statusClass(order.status)}">
-                  ${statusText(order.status)}
-                </span>
-              </h3>
-
-              <p>
-                <b>${order.game}</b>
-                -
-                ${order.package}
-              </p>
-
-              <p class="muted">
-                البيانات:
-                ${order.player_id}
-              </p>
-
-              <a class="btn dark" href="games.html">
-                شحن مرة أخرى
-              </a>
-
-              <a class="btn" href="reviews.html">
-                تقييم الخدمة
-              </a>
-
-            </div>
-          `).join("");
-      }
-
-      const { data: notiData } = await client
-        .from("notifications")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      document.getElementById("notifications").innerHTML =
-        (notiData || []).length
-          ? notiData.map(n => `
-              <div class="card glass">
-                <b>${n.title}</b>
-                <p class="muted">${n.message}</p>
-              </div>
-            `).join("")
-          : "<p class='muted'>لا توجد إشعارات.</p>";
-
-      const { data: idsData } = await client
-        .from("saved_ids")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      document.getElementById("savedIds").innerHTML =
-        (idsData || []).length
-          ? idsData.map(item => `
-              <div class="item-row">
-                <b>${item.game}</b>
-                <span class="muted">${item.value}</span>
-              </div>
-            `).join("")
-          : "<p class='muted'>لا توجد بيانات محفوظة.</p>";
-    }
-
-    loadAccount();
   </script>
+  
+<script>
+async function logout(){await client.auth.signOut();location.href="login.html";}
+async function loadAccount(){const user=await currentUser();if(!user){document.getElementById("userInfo").innerHTML=`أنت غير مسجل دخول.<br><br><a class="btn" href="login.html">تسجيل الدخول</a>`;return;}document.getElementById("userInfo").innerHTML=`مرحبًا <b>${user.user_metadata.name||user.email}</b><br>${user.email}`;const {data:ordersData}=await client.from("orders").select("*").eq("user_id",user.id).order("created_at",{ascending:false});const ordersArr=ordersData||[];document.getElementById("ordersCount").textContent=[...new Set(ordersArr.map(o=>o.order_code))].length;document.getElementById("spent").textContent=ordersArr.reduce((sum,o)=>sum+Number(o.price||0),0)+" جنيه";document.getElementById("lastStatus").textContent=ordersArr[0]?statusText(ordersArr[0].status):"-";document.getElementById("orders").innerHTML=ordersArr.length?ordersArr.map(order=>`<div class="card glass"><h3>${order.order_code} <span class="status ${statusClass(order.status)}">${statusText(order.status)}</span></h3><p><b>${order.game}</b> - ${order.package}</p><p class="muted">البيانات: ${order.player_id}</p><a class="btn dark" href="games.html">شحن مرة أخرى</a> <a class="btn" href="reviews.html">تقييم الخدمة</a></div>`).join(""):"<p class='muted'>لا يوجد طلبات بعد.</p>";const {data:notiData}=await client.from("notifications").select("*").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10);document.getElementById("notifications").innerHTML=(notiData||[]).length?(notiData||[]).map(n=>`<div class="card glass"><b>${n.title}</b><p class="muted">${n.message}</p></div>`).join(""):"<p class='muted'>لا توجد إشعارات.</p>";const {data:idsData}=await client.from("saved_ids").select("*").eq("user_id",user.id).order("created_at",{ascending:false}).limit(10);document.getElementById("savedIds").innerHTML=(idsData||[]).length?(idsData||[]).map(item=>`<div class="item-row"><b>${item.game}</b><span class="muted">${item.value}</span></div>`).join(""):"<p class='muted'>لا توجد بيانات محفوظة.</p>";}
+loadAccount();
+</script>
 
 </body>
-
 </html>
