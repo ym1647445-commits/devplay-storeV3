@@ -194,16 +194,6 @@ href="account.html"
 👤 حسابي
 
 </a>
-
-<a
-class="${active === 'admin' ? 'active' : ''}"
-href="admin.html"
->
-
-👑 الإدارة
-
-</a>
-
 </nav>
 
 <a class="pill" href="cart.html">
