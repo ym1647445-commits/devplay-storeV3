@@ -2,17 +2,24 @@
 <html lang="ar" dir="rtl">
 
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0">
 
   <title>لوحة الإدارة</title>
 
   <link rel="manifest" href="manifest.json">
+
   <link rel="stylesheet" href="style.css">
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <script src="config.js"></script>
+
   <script src="app.js"></script>
+
 </head>
 
 <body>
@@ -21,299 +28,493 @@
 
   <section class="section container">
 
-    <div id="guard" class="glass card" style="max-width:480px;margin:auto">
+    <div id="guard"
+         class="glass card"
+         style="max-width:480px;margin:auto">
+
       <h2>دخول الأدمن</h2>
 
-      <input id="pass" type="password" placeholder="كلمة السر">
+      <input id="pass"
+             type="password"
+             placeholder="كلمة السر">
 
-      <button class="btn" onclick="enter()">
+      <button class="btn"
+              onclick="enter()">
+
         دخول
+
       </button>
+
     </div>
 
-    <div id="panel" style="display:none">
+    <div id="panel"
+         style="display:none">
+
+      <!-- الإحصائيات -->
 
       <div class="grid">
 
         <div class="glass card">
+
           <h3 id="totalOrders">0</h3>
-          <p class="muted">إجمالي الطلبات</p>
+
+          <p class="muted">
+            إجمالي الطلبات
+          </p>
+
         </div>
 
         <div class="glass card">
+
           <h3 id="pendingOrders">0</h3>
-          <p class="muted">قيد المراجعة</p>
+
+          <p class="muted">
+            قيد المراجعة
+          </p>
+
         </div>
 
         <div class="glass card">
+
           <h3 id="shippedOrders">0</h3>
-          <p class="muted">تم الشحن</p>
+
+          <p class="muted">
+            تم الشحن
+          </p>
+
         </div>
 
         <div class="glass card">
+
           <h3 id="revenue">0</h3>
-          <p class="muted">إجمالي تقريبي</p>
+
+          <p class="muted">
+            إجمالي الأرباح
+          </p>
+
         </div>
 
       </div>
 
-      <div class="glass card" style="margin-top:16px">
+      <!-- الفلاتر -->
+
+      <div class="glass card"
+           style="margin-top:20px">
 
         <div class="filters">
 
-          <input
-            id="search"
-            oninput="apply()"
-            placeholder="بحث برقم الطلب / العميل / اللعبة / ID"
-          >
+          <input id="search"
+                 placeholder="بحث..."
+                 oninput="apply()">
 
-          <select id="status" onchange="apply()">
-            <option value="all" selected>كل الحالات</option>
-            <option value="pending">قيد المراجعة</option>
-            <option value="shipped">تم الشحن</option>
-            <option value="rejected">مرفوض</option>
+          <select id="status"
+                  onchange="apply()">
+
+            <option value="all">
+              كل الحالات
+            </option>
+
+            <option value="pending">
+              قيد المراجعة
+            </option>
+
+            <option value="shipped">
+              تم الشحن
+            </option>
+
+            <option value="rejected">
+              مرفوض
+            </option>
+
           </select>
 
-          <button class="btn" onclick="load()">
+          <button class="btn"
+                  onclick="load()">
+
             تحديث
+
           </button>
 
-          <a class="btn dark" href="posts-admin.html">
-            إدارة العروض
+          <!-- إدارة المنتجات -->
+
+          <a class="btn dark"
+             href="admin-products.html">
+
+            إدارة المنتجات
+
+          </a>
+
+          <!-- صفحة العروض -->
+
+          <a class="btn"
+             href="offers.html">
+
+            صفحة العروض
+
           </a>
 
         </div>
 
       </div>
 
-      <div id="orders" style="margin-top:16px"></div>
+      <!-- الطلبات -->
+
+      <div id="orders"
+           style="margin-top:20px">
+
+      </div>
 
     </div>
 
   </section>
 
   <div id="foot"></div>
-  <div id="toast" class="toast"></div>
+
+  <div id="toast"
+       class="toast"></div>
 
   <script>
-    document.getElementById("top").innerHTML = header("admin");
-    document.getElementById("foot").innerHTML = footer();
+
+    document.getElementById("top").innerHTML =
+      header("admin");
+
+    document.getElementById("foot").innerHTML =
+      footer();
 
     let all = [];
 
-    function enter() {
-      if (pass.value !== ADMIN_PASSWORD) {
+    function enter(){
+
+      if(pass.value !== ADMIN_PASSWORD){
+
         return alert("كلمة السر غلط");
+
       }
 
       guard.style.display = "none";
+
       panel.style.display = "block";
 
       load();
+
     }
 
-    function group(rows) {
+    function group(rows){
+
       const groups = {};
 
       rows.forEach(row => {
-        const code = row.order_code || "NO-CODE";
 
-        if (!groups[code]) {
+        const code =
+          row.order_code || "NO-CODE";
+
+        if(!groups[code]){
+
           groups[code] = [];
+
         }
 
         groups[code].push(row);
+
       });
 
       return Object.values(groups);
+
     }
 
-    async function load() {
-      search.value = "";
-      status.value = "all";
+    async function load(){
 
-      const { data, error } = await client
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false });
+      const { data , error } =
+      await client
+      .from("orders")
+      .select("*")
+      .order("created_at",
+      { ascending:false });
 
-      if (error) {
-        return alert(error.message);
+      if(error){
+
+        alert(error.message);
+
+        return;
+
       }
 
       all = data || [];
 
       stats();
+
       apply();
+
     }
 
-    function stats() {
+    function stats(){
+
       const groups = group(all);
 
-      totalOrders.textContent = groups.length;
+      totalOrders.textContent =
+        groups.length;
 
       pendingOrders.textContent =
-        groups.filter(g => g[0].status === "pending").length;
+        groups.filter(
+          g => g[0].status === "pending"
+        ).length;
 
       shippedOrders.textContent =
-        groups.filter(g => g[0].status === "shipped").length;
+        groups.filter(
+          g => g[0].status === "shipped"
+        ).length;
 
       revenue.textContent =
-        all.reduce((sum, order) => {
-          return sum + Number(order.price || 0);
-        }, 0) + " جنيه";
+        all.reduce((sum,order)=>{
+
+          return sum +
+            Number(order.price || 0);
+
+        },0) + " جنيه";
+
     }
 
-    function apply() {
-      const q = search.value.toLowerCase().trim();
-      const s = status.value;
+    function apply(){
 
-      const rows = all.filter(order => {
+      const q =
+        search.value.toLowerCase();
+
+      const s =
+        status.value;
+
+      const rows =
+      all.filter(order => {
+
         const text = `
           ${order.order_code || ""}
           ${order.customer_name || ""}
           ${order.phone || ""}
-          ${order.customer_phone || ""}
           ${order.game || ""}
           ${order.player_id || ""}
-          ${order.package || ""}
         `.toLowerCase();
 
-        const matchSearch = text.includes(q);
-        const matchStatus = s === "all" || order.status === s;
+        const matchSearch =
+          text.includes(q);
 
-        return matchSearch && matchStatus;
+        const matchStatus =
+          s === "all" ||
+          order.status === s;
+
+        return matchSearch &&
+               matchStatus;
+
       });
 
       render(group(rows));
+
     }
 
-    function render(groups) {
-      if (!groups.length) {
+    function render(groups){
+
+      if(!groups.length){
+
         orders.innerHTML = `
           <div class="glass card">
-            لا توجد طلبات مطابقة للفلتر الحالي.
-            <br>
-            جرّبي اختيار "كل الحالات".
+            لا توجد طلبات
           </div>
         `;
+
         return;
+
       }
 
-      orders.innerHTML = groups.map(group => {
+      orders.innerHTML =
+      groups.map(group => {
+
         const first = group[0];
 
-        const phone = String(
-          first.phone || first.customer_phone || ""
-        ).replace(/\D/g, "");
+        const phone =
+          String(first.phone || "")
+          .replace(/\D/g,"");
 
-        const whatsappPhone =
-          phone.startsWith("0") ? "20" + phone.slice(1) : phone;
+        const wa =
+          phone.startsWith("0")
+          ? "20" + phone.slice(1)
+          : phone;
 
-        const msg = encodeURIComponent(
+        const msg =
+        encodeURIComponent(
+
 `تم تحديث طلبك في DevPlay ✅
-رقم الطلب: ${first.order_code}
-الحالة: ${statusText(first.status)}
+
+رقم الطلب:
+${first.order_code}
+
+الحالة:
+${statusText(first.status)}
 
 ${WHATSAPP_CHANNEL}`
+
         );
 
         return `
-          <div class="glass card" style="margin-bottom:14px">
 
-            <h3>
-              ${first.order_code || "NO-CODE"}
+        <div class="glass card"
+             style="margin-bottom:14px">
 
-              <span class="status ${statusClass(first.status)}">
-                ${statusText(first.status)}
+          <h3>
+
+            ${first.order_code}
+
+            <span class="status ${statusClass(first.status)}">
+
+              ${statusText(first.status)}
+
+            </span>
+
+          </h3>
+
+          <p>
+
+            <b>العميل:</b>
+
+            ${first.customer_name || "-"}
+
+            -
+
+            ${first.phone || "-"}
+
+          </p>
+
+          ${group.map(item => `
+
+            <div class="item-row">
+
+              <b>
+                ${item.game}
+              </b>
+
+              <span>
+
+                ${item.package}
+
+                -
+
+                ${item.player_id}
+
+                -
+
+                ${item.price}ج
+
               </span>
-            </h3>
 
-            <p>
-              <b>العميل:</b>
-              ${first.customer_name || "-"}
-              -
-              ${first.phone || first.customer_phone || "-"}
-            </p>
+            </div>
 
-            ${group.map(item => `
-              <div class="item-row">
-                <b>${item.game || "-"}</b>
-                <span>
-                  ${item.package || "-"}
-                  -
-                  ${item.player_id || "-"}
-                  -
-                  ${item.price || 0}ج
-                </span>
-              </div>
-            `).join("")}
+          `).join("")}
 
-            <br>
+          <br>
 
-            <select onchange="updateStatus('${first.order_code}', this.value)">
-              <option value="pending" ${first.status === "pending" ? "selected" : ""}>
-                قيد المراجعة
-              </option>
+          <select
+          onchange="updateStatus('${first.order_code}',this.value)">
 
-              <option value="shipped" ${first.status === "shipped" ? "selected" : ""}>
-                تم الشحن
-              </option>
+            <option value="pending"
+            ${first.status==="pending"?"selected":""}>
 
-              <option value="rejected" ${first.status === "rejected" ? "selected" : ""}>
-                مرفوض
-              </option>
-            </select>
+              قيد المراجعة
 
-            <button
-              class="btn green"
-              onclick="window.open('https://wa.me/${whatsappPhone}?text=${msg}', '_blank')"
-            >
-              واتساب
-            </button>
+            </option>
 
-            <button
-              class="btn dark"
-              onclick="copyOrderData('${group.map(x => x.player_id || '').join(' / ')}')"
-            >
-              نسخ البيانات
-            </button>
+            <option value="shipped"
+            ${first.status==="shipped"?"selected":""}>
 
-          </div>
+              تم الشحن
+
+            </option>
+
+            <option value="rejected"
+            ${first.status==="rejected"?"selected":""}>
+
+              مرفوض
+
+            </option>
+
+          </select>
+
+          <button class="btn green"
+          onclick="window.open('https://wa.me/${wa}?text=${msg}','_blank')">
+
+            واتساب
+
+          </button>
+
+          <button class="btn dark"
+          onclick="copyData('${group.map(x=>x.player_id).join(' / ')}')">
+
+            نسخ البيانات
+
+          </button>
+
+        </div>
+
         `;
+
       }).join("");
+
     }
 
-    function copyOrderData(text) {
+    function copyData(text){
+
       navigator.clipboard.writeText(text);
+
       toast("تم النسخ");
+
     }
 
-    async function updateStatus(code, newStatus) {
-      const { error } = await client
-        .from("orders")
-        .update({ status: newStatus })
-        .eq("order_code", code);
+    async function updateStatus(code,status){
 
-      if (error) {
-        return alert(error.message);
+      const { error } =
+      await client
+      .from("orders")
+      .update({ status })
+      .eq("order_code",code);
+
+      if(error){
+
+        alert(error.message);
+
+        return;
+
       }
 
-      const userRows = all.filter(order => {
-        return order.order_code === code && order.user_id;
+      const userRows =
+      all.filter(order => {
+
+        return order.order_code === code
+        && order.user_id;
+
       });
 
-      if (userRows[0]) {
-        await client.from("notifications").insert([{
-          user_id: userRows[0].user_id,
-          title: "تحديث حالة الطلب",
-          message: `طلبك ${code}: ${statusText(newStatus)}`,
-          type: "order"
+      if(userRows[0]){
+
+        await client
+        .from("notifications")
+        .insert([{
+
+          user_id:
+            userRows[0].user_id,
+
+          title:
+            "تحديث حالة الطلب",
+
+          message:
+            `طلبك ${code}: ${statusText(status)}`,
+
+          type:
+            "order"
+
         }]);
+
       }
 
       load();
+
     }
+
   </script>
 
 </body>
