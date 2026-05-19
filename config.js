@@ -9,3 +9,4 @@ const CHAT_ID = "8231091019";
 const WHATSAPP_CHANNEL = "https://whatsapp.com/channel/0029Vb7xg1EEwEk54XvWsl09";
 const FACEBOOK_URL = "https://www.facebook.com/share/1CuTSXXPdY/";
 const CASH_NUMBER = "010 359 66569";
+const SUPPORT_WHATSAPP = "201036797528";
