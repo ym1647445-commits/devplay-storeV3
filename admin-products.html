@@ -1,221 +1,205 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>إدارة المنتجات</title>
-
-<link rel="stylesheet" href="style.css">
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="config.js"></script>
-<script src="app.js"></script>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة المنتجات - DevPlay</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
 </head>
 <body>
+  <div id="top"></div>
 
-<div id="top"></div>
-
+  
 <section class="section container">
+  <div class="glass card">
+    <h2>إدارة المنتجات</h2>
+    <p class="muted">من هنا تضيفي وتعدلي وتخفي المنتجات من المتجر.</p>
 
-<div class="glass card">
+    <div class="grid">
+      <input id="game" placeholder="اسم اللعبة / الخدمة">
+      <input id="name" placeholder="اسم الباقة">
+      <input id="price" type="number" step="0.01" placeholder="السعر">
+      <input id="img" placeholder="اسم الصورة مثل pubg.png">
+      <input id="need" placeholder="المطلوب من العميل: ID أو رقم أو إيميل">
+      <input id="offer_label" placeholder="عرض / لابل اختياري">
 
-<h2>إضافة منتج جديد</h2>
+      <select id="category">
+        <option value="games">ألعاب</option>
+        <option value="mobile">رصيد</option>
+        <option value="fakka">فكة</option>
+        <option value="cards">بطاقات</option>
+      </select>
 
-<div class="grid">
+      <select id="popular">
+        <option value="false">عادي</option>
+        <option value="true">مميز</option>
+      </select>
+    </div>
 
-<input id="game" placeholder="اسم اللعبة">
+    <br>
+    <button class="btn" onclick="saveProduct()">حفظ المنتج</button>
+  </div>
 
-<input id="name" placeholder="اسم الباقة">
-
-<input id="price" type="number" placeholder="السعر">
-
-<input id="img" placeholder="رابط الصورة">
-
-<input id="need" placeholder="نوع البيانات المطلوبة">
-
-<select id="category">
-<option value="games">ألعاب</option>
-<option value="mobile">رصيد</option>
-<option value="fakka">فكة</option>
-<option value="cards">بطاقات</option>
-</select>
-
-<input id="offer" placeholder="عرض / لابل">
-
-</div>
-
-<div style="margin-top:20px">
-
-<label>
-
-<input type="checkbox" id="popular">
-
-منتج مميز
-
-</label>
-
-</div>
-
-<button class="btn" onclick="addProduct()">
-
-إضافة المنتج
-
-</button>
-
-</div>
-
-<div class="glass card" style="margin-top:20px">
-
-<h2>كل المنتجات</h2>
-
-<div id="products"></div>
-
-</div>
-
+  <div class="glass card" style="margin-top:18px">
+    <h2>كل المنتجات</h2>
+    <input id="productSearch" placeholder="بحث في المنتجات" oninput="renderProducts()">
+    <div id="productsList" style="margin-top:16px"></div>
+  </div>
 </section>
 
-<div id="foot"></div>
 
+  <div id="foot"></div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    document.getElementById("top").innerHTML = header("admin");
+    document.getElementById("foot").innerHTML = footer();
+  </script>
+
+  
 <script>
+let adminProducts = [];
+let editingProductId = null;
 
-top.innerHTML = header("admin");
+async function loadProductsAdmin() {
+  const { data, error } = await client
+    .from("products")
+    .select("*")
+    .order("created_at", { ascending: false });
 
-foot.innerHTML = footer();
+  if (error) return alert(error.message);
 
-async function loadProducts(){
-
-const { data , error } = await client
-.from("products")
-.select("*")
-.order("created_at",{ascending:false});
-
-if(error){
-alert(error.message);
-return;
+  adminProducts = data || [];
+  renderProducts();
 }
 
-products.innerHTML = data.map(p=>`
+function renderProducts() {
+  const q = productSearch.value.toLowerCase().trim();
 
-<div class="product-admin">
+  const list = adminProducts.filter(p => {
+    const text = `${p.game} ${p.name} ${p.category} ${p.price}`.toLowerCase();
+    return text.includes(q);
+  });
 
-<div>
+  productsList.innerHTML =
+    list.length
+      ? list.map(p => `
+        <div class="glass card" style="margin-bottom:12px">
+          <div class="item-row">
+            <div>
+              <h3>${p.game}</h3>
+              <p class="muted">${p.name}</p>
+              <p>${p.price} جنيه - ${categoryLabel(p.category)}</p>
+              <p class="muted">المطلوب: ${p.need || "-"}</p>
+              <p class="muted">الحالة: ${p.active ? "ظاهر" : "مخفي"}</p>
+            </div>
 
-<h3>${p.game}</h3>
-
-<p>${p.name}</p>
-
-<p>${p.price} جنيه</p>
-
-<p>${p.category}</p>
-
-</div>
-
-<div class="admin-actions">
-
-<button class="btn red"
-onclick="deleteProduct(${p.id})">
-
-حذف
-
-</button>
-
-<button class="btn green"
-onclick="toggleProduct(${p.id},${p.active})">
-
-${p.active ? "إخفاء" : "تفعيل"}
-
-</button>
-
-</div>
-
-</div>
-
-`).join("");
-
+            <div>
+              <button class="btn" onclick="fillEdit(${p.id})">تعديل</button>
+              <button class="btn dark" onclick="toggleProduct(${p.id}, ${p.active})">${p.active ? "إخفاء" : "إظهار"}</button>
+              <button class="btn red" onclick="deleteProduct(${p.id})">حذف</button>
+            </div>
+          </div>
+        </div>
+      `).join("")
+      : "<p class='muted'>لا توجد منتجات.</p>";
 }
 
-async function addProduct(){
+function fillEdit(id) {
+  const p = adminProducts.find(x => x.id === id);
+  if (!p) return;
 
-const body = {
+  game.value = p.game || "";
+  name.value = p.name || "";
+  price.value = p.price || "";
+  img.value = p.img || "";
+  need.value = p.need || "";
+  offer_label.value = p.offer_label || "";
+  category.value = p.category || "games";
+  popular.value = String(!!p.popular);
 
-game: game.value,
-
-name: name.value,
-
-price: Number(price.value),
-
-img: img.value,
-
-need: need.value,
-
-category: category.value,
-
-popular: popular.checked,
-
-offer_label: offer.value,
-
-active: true
-
-};
-
-const { error } = await client
-.from("products")
-.insert([body]);
-
-if(error){
-alert(error.message);
-return;
+  editingProductId = id;
+  toast("عدلي البيانات واضغطي حفظ المنتج");
 }
 
-toast("تم إضافة المنتج");
+async function saveProduct() {
+  const body = {
+    game: game.value,
+    name: name.value,
+    price: Number(price.value),
+    img: img.value || "logo.png",
+    need: need.value || "بيانات الطلب",
+    category: category.value,
+    popular: popular.value === "true",
+    offer_label: offer_label.value || null,
+    active: true
+  };
 
-loadProducts();
+  if (!body.game || !body.name || !body.price) {
+    return toast("اكتبي اسم الخدمة والباقة والسعر");
+  }
 
+  let error;
+
+  if (editingProductId) {
+    const res = await client
+      .from("products")
+      .update(body)
+      .eq("id", editingProductId);
+
+    error = res.error;
+    editingProductId = null;
+  } else {
+    const res = await client
+      .from("products")
+      .insert([body]);
+
+    error = res.error;
+  }
+
+  if (error) return alert(error.message);
+
+  toast("تم الحفظ ✅");
+
+  game.value = "";
+  name.value = "";
+  price.value = "";
+  img.value = "";
+  need.value = "";
+  offer_label.value = "";
+
+  loadProductsAdmin();
 }
 
-async function deleteProduct(id){
+async function toggleProduct(id, active) {
+  const { error } = await client
+    .from("products")
+    .update({ active: !active })
+    .eq("id", id);
 
-if(!confirm("حذف المنتج؟")) return;
+  if (error) return alert(error.message);
 
-const { error } = await client
-.from("products")
-.delete()
-.eq("id",id);
-
-if(error){
-alert(error.message);
-return;
+  loadProductsAdmin();
 }
 
-toast("تم الحذف");
+async function deleteProduct(id) {
+  if (!confirm("حذف المنتج؟")) return;
 
-loadProducts();
+  const { error } = await client
+    .from("products")
+    .delete()
+    .eq("id", id);
 
+  if (error) return alert(error.message);
+
+  loadProductsAdmin();
 }
 
-async function toggleProduct(id,active){
-
-const { error } = await client
-.from("products")
-.update({
-active: !active
-})
-.eq("id",id);
-
-if(error){
-alert(error.message);
-return;
-}
-
-loadProducts();
-
-}
-
-loadProducts();
-
+loadProductsAdmin();
 </script>
 
 </body>
