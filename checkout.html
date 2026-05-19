@@ -11,13 +11,14 @@
   <script src="app.js"></script>
 </head>
 <body>
-  <div id="top"></div>
+<div id="top"></div>
 
-  
 <section class="section container">
   <div class="layout-2">
     <div class="glass card">
       <h2>إتمام الطلب ⚡</h2>
+      <p class="muted">الدفع حاليًا من رصيد الموقع فقط. لو رصيدك غير كافي، اشحني المحفظة أولًا.</p>
+      <h3>رصيدك الحالي: <span id="walletBalance">0</span> جنيه</h3>
 
       <div class="form">
         <label>الاسم</label>
@@ -26,22 +27,11 @@
         <label>رقم واتساب</label>
         <input id="phone" placeholder="010xxxxxxxx">
 
-        <label>رقم عملية التحويل</label>
-        <input id="paymentCode" placeholder="رقم العملية أو آخر 4 أرقام">
-
         <label>ملاحظات</label>
         <textarea id="notes" rows="3" placeholder="أي ملاحظات إضافية"></textarea>
 
-        <button class="btn" onclick="submitOrder()">تأكيد الطلب</button>
-
-        <p class="muted">
-          الدفع على Vodafone Cash:
-          <b class="num">010 359 66569</b>
-        </p>
-
-        <p class="muted">
-          تنبيه: مدة الشحن قد تختلف حسب التواجد، وقد تتأخر أحيانًا 3-4 ساعات أو 8-9 ساعات أثناء النوم أو عدم التواجد.
-        </p>
+        <button class="btn" onclick="submitOrder()">تأكيد الطلب والدفع من الرصيد</button>
+        <a class="btn dark" href="wallet.html">إضافة رصيد</a>
       </div>
     </div>
 
@@ -53,51 +43,78 @@
   </div>
 </section>
 
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
 
-  <div id="foot"></div>
-  <div id="toast" class="toast"></div>
-
-  <script>
-    document.getElementById("top").innerHTML = header("games");
-    document.getElementById("foot").innerHTML = footer();
-  </script>
-
-  
 <script>
+document.getElementById("top").innerHTML = header("games");
+document.getElementById("foot").innerHTML = footer();
+
+let loggedUser = null;
+let wallet = null;
+let orderTotal = 0;
+
+async function loadWalletForCheckout() {
+  loggedUser = await currentUser();
+
+  if (!loggedUser) {
+    alert("لازم تسجلي دخول قبل إتمام الطلب من الرصيد");
+    location.href = "login.html";
+    return;
+  }
+
+  const { data } = await client.from("wallets").select("*").eq("user_id", loggedUser.id).maybeSingle();
+
+  if (!data) {
+    await client.from("wallets").insert([{ user_id: loggedUser.id, balance: 0 }]);
+    wallet = { balance: 0 };
+  } else {
+    wallet = data;
+  }
+
+  walletBalance.textContent = Number(wallet.balance || 0);
+}
+
 function renderSummary() {
   const c = cart();
   let total = 0;
 
-  document.getElementById("summary").innerHTML =
+  summary.innerHTML =
     c.length
       ? c.map(item => {
-          total += Number(item.price);
-          return `
-            <div class="item-row">
-              <div>
-                <b>${item.game}</b>
-                <p class="muted">${item.name}<br>${item.playerId}</p>
-              </div>
-              <b>${item.price} جنيه</b>
-            </div>
-          `;
-        }).join("")
+        total += Number(item.price);
+        return `
+          <div class="item-row">
+            <div><b>${item.game}</b><p class="muted">${item.name}<br>${item.playerId}</p></div>
+            <b>${item.price} جنيه</b>
+          </div>
+        `;
+      }).join("")
       : "<p class='muted'>السلة فارغة.</p>";
 
-  document.getElementById("finalTotal").textContent = total + " جنيه";
+  orderTotal = total;
+  finalTotal.textContent = total + " جنيه";
 }
 
 async function submitOrder() {
   const c = cart();
 
+  if (!loggedUser) return toast("سجلي دخول الأول");
   if (!c.length) return toast("السلة فارغة");
-  if (!customerName.value || !phone.value) return toast("اكتبي الاسم والرقم");
+  if (!customerName.value || !phone.value) return toast("اكتبي الاسم ورقم الواتساب");
 
-  const user = await currentUser();
+  const balance = Number(wallet.balance || 0);
+
+  if (balance < orderTotal) {
+    alert("رصيدك غير كافي. اشحني المحفظة الأول.");
+    location.href = "wallet.html";
+    return;
+  }
+
   const code = orderCode();
 
   const rows = c.map(item => ({
-    user_id: user ? user.id : null,
+    user_id: loggedUser.id,
     product_id: item.product_id || null,
     category: item.category || null,
     customer_name: customerName.value,
@@ -109,33 +126,46 @@ async function submitOrder() {
     price: Number(item.price),
     status: "pending",
     order_code: code,
-    payment_code: paymentCode.value,
-    notes: notes.value
+    notes: notes.value,
+    payment_method: "wallet",
+    wallet_paid: true
   }));
 
   const { error } = await client.from("orders").insert(rows);
-
   if (error) return alert(error.message);
 
-  if (user) {
-    await client.from("notifications").insert([{
-      user_id: user.id,
-      title: "تم استلام طلبك",
-      message: `طلبك ${code} قيد المراجعة`,
-      type: "order"
-    }]);
-  }
+  const newBalance = balance - orderTotal;
+
+  const { error: walletError } = await client
+    .from("wallets")
+    .update({ balance: newBalance, updated_at: new Date().toISOString() })
+    .eq("user_id", loggedUser.id);
+
+  if (walletError) return alert(walletError.message);
+
+  await client.from("wallet_transactions").insert([{
+    user_id: loggedUser.id,
+    type: "debit",
+    amount: orderTotal,
+    note: `دفع طلب ${code}`,
+    ref_id: null
+  }]);
+
+  await client.from("notifications").insert([{
+    user_id: loggedUser.id,
+    title: "تم استلام طلبك",
+    message: `تم خصم ${orderTotal} جنيه من رصيدك. طلبك ${code} قيد المراجعة.`,
+    type: "order"
+  }]);
 
   localStorage.removeItem("cart");
-  toast("تم إرسال الطلب ✅");
+  toast("تم إرسال الطلب والدفع من الرصيد ✅");
 
-  setTimeout(() => {
-    location.href = "account.html";
-  }, 900);
+  setTimeout(() => location.href = "account.html", 900);
 }
 
 renderSummary();
+loadWalletForCheckout();
 </script>
-
 </body>
 </html>
