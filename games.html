@@ -12,12 +12,28 @@
 </head>
 <body>
   <div id="top"></div>
+
   
 <section class="section container">
-  <div class="section-head"><h2>شحن الألعاب والخدمات 🎮</h2><a class="btn" href="cart.html">السلة <b data-cart-count>0</b></a></div>
-  <div class="filters" id="filters"></div>
+  <div class="section-head">
+    <h2>متجر DevPlay 🎮</h2>
+    <a class="btn" href="cart.html">السلة <b data-cart-count>0</b></a>
+  </div>
+
+  <div class="glass card">
+    <p class="muted">
+      تنبيه مدة الشحن: أحيانًا يتم الشحن خلال دقائق، وأحيانًا قد يتأخر 3 إلى 4 ساعات إذا كنت بالخارج، أو 8 إلى 9 ساعات أثناء النوم أو عدم التواجد بجانب الموبايل.
+    </p>
+  </div>
+
+  <div class="filters" id="categoryFilters"></div>
+  <div class="filters" id="gameFilters"></div>
+
+  <input id="searchBox" placeholder="بحث عن منتج أو لعبة..." oninput="applyFilters()" style="margin-bottom:18px">
+
   <div class="grid" id="products"></div>
 </section>
+
 <div class="modal" id="modal">
   <div class="modal-box glass">
     <button class="close" onclick="closeModal()">×</button>
@@ -27,20 +43,104 @@
   </div>
 </div>
 
+
   <div id="foot"></div>
   <div id="toast" class="toast"></div>
+
   <script>
     document.getElementById("top").innerHTML = header("games");
     document.getElementById("foot").innerHTML = footer();
   </script>
+
   
 <script>
-const games=["all","popular",...new Set(PRODUCTS.map(p=>p.game))];
-const names={all:"الكل",popular:"الأشهر 🔥"};
-document.getElementById("filters").innerHTML=games.map((g,i)=>`<button class="filter ${i===0?'active':''}" onclick="filterProducts('${g}',this)">${names[g]||g}</button>`).join("");
-function renderProducts(list){document.getElementById("products").innerHTML=list.map(p=>productCard(p,PRODUCTS.indexOf(p))).join("")}
-function filterProducts(g,btn){document.querySelectorAll(".filter").forEach(b=>b.classList.remove("active"));btn.classList.add("active");if(g==="all")renderProducts(PRODUCTS);else if(g==="popular")renderProducts(PRODUCTS.filter(p=>p.popular));else renderProducts(PRODUCTS.filter(p=>p.game===g))}
-renderProducts(PRODUCTS);
+let currentCategory = "all";
+let currentGame = "all";
+
+function getUrlCat() {
+  const params = new URLSearchParams(location.search);
+  return params.get("cat") || "all";
+}
+
+function renderCategoryFilters() {
+  const cats = ["all", ...new Set(PRODUCTS.map(p => p.category || "other"))];
+
+  const names = {
+    all: "كل الأقسام",
+    games: "🎮 ألعاب",
+    mobile: "📱 رصيد",
+    fakka: "⚡ فكة",
+    cards: "💳 بطاقات",
+    other: "أخرى"
+  };
+
+  document.getElementById("categoryFilters").innerHTML =
+    cats.map(cat => `
+      <button class="filter ${cat === currentCategory ? "active" : ""}" onclick="setCategory('${cat}')">
+        ${names[cat] || cat}
+      </button>
+    `).join("");
+}
+
+function renderGameFilters() {
+  const filteredByCat =
+    currentCategory === "all"
+      ? PRODUCTS
+      : PRODUCTS.filter(p => p.category === currentCategory);
+
+  const games = ["all", ...new Set(filteredByCat.map(p => p.game))];
+
+  document.getElementById("gameFilters").innerHTML =
+    games.map(g => `
+      <button class="filter ${g === currentGame ? "active" : ""}" onclick="setGame('${g}')">
+        ${g === "all" ? "كل المنتجات" : g}
+      </button>
+    `).join("");
+}
+
+function setCategory(cat) {
+  currentCategory = cat;
+  currentGame = "all";
+  renderCategoryFilters();
+  renderGameFilters();
+  applyFilters();
+}
+
+function setGame(game) {
+  currentGame = game;
+  renderGameFilters();
+  applyFilters();
+}
+
+function applyFilters() {
+  const q = document.getElementById("searchBox").value.toLowerCase().trim();
+
+  const list = PRODUCTS.filter(p => {
+    const matchCat = currentCategory === "all" || p.category === currentCategory;
+    const matchGame = currentGame === "all" || p.game === currentGame;
+
+    const text = `${p.game} ${p.name} ${p.category}`.toLowerCase();
+    const matchSearch = text.includes(q);
+
+    return matchCat && matchGame && matchSearch;
+  });
+
+  document.getElementById("products").innerHTML =
+    list.length
+      ? list.map(p => productCard(p, PRODUCTS.indexOf(p))).join("")
+      : "<div class='glass card'>لا توجد منتجات مطابقة.</div>";
+}
+
+async function initStore() {
+  await loadProductsFromDB();
+  currentCategory = getUrlCat();
+
+  renderCategoryFilters();
+  renderGameFilters();
+  applyFilters();
+}
+
+initStore();
 </script>
 
 </body>
