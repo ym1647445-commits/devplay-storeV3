@@ -3,131 +3,169 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إضافة رصيد</title>
-
+  <title>محفظتي - DevPlay</title>
+  <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </head>
-
 <body>
-
 <div id="top"></div>
 
 <section class="section container">
-
-  <div class="glass card" style="max-width:650px;margin:auto">
-
-    <h2>إضافة رصيد للمحفظة 💰</h2>
-
-    <p class="muted">
-      حوّل على فودافون كاش ثم ارفع صورة التحويل. الصورة إجبارية.
-    </p>
-
-    <p>
-      رقم فودافون كاش:
-      <b class="num">010 359 66569</b>
-    </p>
-
-    <div class="form">
-
-      <label>الاسم</label>
-      <input id="customerName" placeholder="اسمك">
-
-      <label>رقم الهاتف اللي حولت منه</label>
-      <input id="transferPhone" placeholder="010xxxxxxxx">
-
-      <label>المبلغ المحول</label>
-      <input id="amount" type="number" placeholder="مثال: 100">
-
-      <label>رقم العملية / آخر 4 أرقام</label>
-      <input id="paymentCode" placeholder="اختياري">
-
-      <label>صورة التحويل</label>
-      <input id="proof" type="file" accept="image/*">
-
-      <button class="btn" onclick="sendTopup()">
-        إرسال طلب إضافة الرصيد
-      </button>
-
-    </div>
-
+  <div class="glass card">
+    <h2>محفظتي 💰</h2>
+    <p class="muted">رصيدك داخل الموقع هو الطريقة الوحيدة لإتمام الطلبات.</p>
+    <h1 id="balance">0 جنيه</h1>
   </div>
 
+  <div class="layout-2" style="margin-top:18px">
+    <div class="glass card">
+      <h2>إضافة رصيد</h2>
+      <p class="muted">حوّلي على فودافون كاش ثم ارفعي صورة التحويل. صورة التحويل إجبارية.</p>
+      <p>رقم فودافون كاش: <b class="num">010 359 66569</b></p>
+
+      <div class="form">
+        <label>الاسم</label>
+        <input id="customerName" placeholder="اسمك">
+
+        <label>الرقم اللي حولتي منه</label>
+        <input id="transferPhone" placeholder="010xxxxxxxx">
+
+        <label>المبلغ المحول</label>
+        <input id="amount" type="number" placeholder="مثال: 100">
+
+        <label>رقم العملية / آخر 4 أرقام</label>
+        <input id="paymentCode" placeholder="اختياري">
+
+        <label>صورة التحويل</label>
+        <input id="proof" type="file" accept="image/*">
+
+        <button class="btn" onclick="sendTopup()">إرسال طلب إضافة الرصيد</button>
+      </div>
+    </div>
+
+    <aside class="glass card">
+      <h2>سجل المحفظة</h2>
+      <div id="transactions"></div>
+      <br>
+      <h2>طلبات الإضافة</h2>
+      <div id="topups"></div>
+    </aside>
+  </div>
 </section>
 
 <div id="foot"></div>
 <div id="toast" class="toast"></div>
 
 <script>
-document.getElementById("top").innerHTML = header("account");
+document.getElementById("top").innerHTML = header("wallet");
 document.getElementById("foot").innerHTML = footer();
 
+let loggedUser = null;
+
+async function ensureLoggedIn() {
+  loggedUser = await currentUser();
+
+  if (!loggedUser) {
+    alert("لازم تسجلي دخول الأول عشان تستخدمي المحفظة");
+    location.href = "login.html";
+    return false;
+  }
+
+  return true;
+}
+
+async function loadWallet() {
+  const ok = await ensureLoggedIn();
+  if (!ok) return;
+
+  let { data: wallet } = await client
+    .from("wallets")
+    .select("*")
+    .eq("user_id", loggedUser.id)
+    .maybeSingle();
+
+  if (!wallet) {
+    await client.from("wallets").insert([{ user_id: loggedUser.id, balance: 0 }]);
+    wallet = { balance: 0 };
+  }
+
+  balance.textContent = Number(wallet.balance || 0) + " جنيه";
+
+  const { data: tx } = await client
+    .from("wallet_transactions")
+    .select("*")
+    .eq("user_id", loggedUser.id)
+    .order("created_at", { ascending: false })
+    .limit(20);
+
+  transactions.innerHTML =
+    (tx || []).length
+      ? tx.map(t => `
+        <div class="item-row">
+          <div><b>${t.type === "credit" ? "إضافة" : "خصم"}</b><p class="muted">${t.note || ""}</p></div>
+          <b>${t.amount} جنيه</b>
+        </div>
+      `).join("")
+      : "<p class='muted'>لا توجد عمليات.</p>";
+
+  const { data: topupData } = await client
+    .from("wallet_topups")
+    .select("*")
+    .eq("user_id", loggedUser.id)
+    .order("created_at", { ascending: false })
+    .limit(10);
+
+  topups.innerHTML =
+    (topupData || []).length
+      ? topupData.map(t => `
+        <div class="card glass">
+          <b>${t.amount} جنيه</b>
+          <p class="muted">الحالة: ${statusText(t.status)}</p>
+          <a class="btn dark" target="_blank" href="${t.proof_url}">صورة التحويل</a>
+        </div>
+      `).join("")
+      : "<p class='muted'>لا توجد طلبات إضافة.</p>";
+}
+
 async function sendTopup() {
-  const user = await currentUser();
+  const ok = await ensureLoggedIn();
+  if (!ok) return;
 
-  if (!customerName.value.trim()) {
-    return toast("اكتبي الاسم");
-  }
-
-  if (!transferPhone.value.trim()) {
-    return toast("اكتبي الرقم اللي حولتي منه");
-  }
-
-  if (!amount.value || Number(amount.value) <= 0) {
-    return toast("اكتبي المبلغ");
-  }
-
-  if (!proof.files[0]) {
-    return toast("صورة التحويل إجبارية");
-  }
+  if (!customerName.value.trim()) return toast("اكتبي الاسم");
+  if (!transferPhone.value.trim()) return toast("اكتبي الرقم اللي حولتي منه");
+  if (!amount.value || Number(amount.value) <= 0) return toast("اكتبي المبلغ");
+  if (!proof.files[0]) return toast("صورة التحويل إجبارية");
 
   const file = proof.files[0];
+  const fileName = `${loggedUser.id}-${Date.now()}-${file.name.replaceAll(" ","-")}`;
 
-  const fileName =
-    Date.now() + "-" + file.name.replaceAll(" ", "-");
+  const { error: uploadError } = await client.storage.from("transfer_proofs").upload(fileName, file);
+  if (uploadError) return alert(uploadError.message);
 
-  const { error: uploadError } = await client
-    .storage
-    .from("transfer_proofs")
-    .upload(fileName, file);
-
-  if (uploadError) {
-    return alert(uploadError.message);
-  }
-
-  const { data: urlData } = client
-    .storage
-    .from("transfer_proofs")
-    .getPublicUrl(fileName);
-
+  const { data: urlData } = client.storage.from("transfer_proofs").getPublicUrl(fileName);
   const proofUrl = urlData.publicUrl;
 
-  const body = {
-    user_id: user ? user.id : null,
+  const { error } = await client.from("wallet_topups").insert([{
+    user_id: loggedUser.id,
     customer_name: customerName.value,
-    customer_email: user ? user.email : null,
+    customer_email: loggedUser.email,
     transfer_phone: transferPhone.value,
     amount: Number(amount.value),
     payment_code: paymentCode.value,
     proof_url: proofUrl,
     status: "pending"
-  };
+  }]);
 
-  const { error } = await client
-    .from("wallet_topups")
-    .insert([body]);
-
-  if (error) {
-    return alert(error.message);
-  }
+  if (error) return alert(error.message);
 
   const msg =
 `💰 طلب إضافة رصيد جديد
 
 👤 العميل: ${customerName.value}
+📧 الإيميل: ${loggedUser.email}
 📱 الرقم المحول منه: ${transferPhone.value}
 💵 المبلغ: ${amount.value} جنيه
 🧾 رقم العملية: ${paymentCode.value || "غير مكتوب"}
@@ -135,31 +173,19 @@ async function sendTopup() {
 📸 صورة التحويل:
 ${proofUrl}`;
 
-  if (
-    typeof WALLET_BOT_TOKEN !== "undefined" &&
-    typeof WALLET_CHAT_ID !== "undefined" &&
-    WALLET_BOT_TOKEN &&
-    WALLET_CHAT_ID
-  ) {
+  if (typeof WALLET_BOT_TOKEN !== "undefined" && typeof WALLET_CHAT_ID !== "undefined" && WALLET_BOT_TOKEN && WALLET_CHAT_ID) {
     fetch(`https://api.telegram.org/bot${WALLET_BOT_TOKEN}/sendMessage`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        chat_id: WALLET_CHAT_ID,
-        text: msg
-      })
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ chat_id: WALLET_CHAT_ID, text: msg })
     });
   }
 
   toast("تم إرسال طلب إضافة الرصيد ✅");
-
-  setTimeout(() => {
-    location.href = "account.html";
-  }, 1000);
+  setTimeout(() => location.reload(), 1000);
 }
-</script>
 
+loadWallet();
+</script>
 </body>
 </html>
