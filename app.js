@@ -231,3 +231,120 @@ function orderCode() {
 document.addEventListener("DOMContentLoaded", () => {
   updateCartCount();
 });
+function supportWidget() {
+  if (document.getElementById("supportWidget")) return;
+
+  const whatsappText = encodeURIComponent(
+    "السلام عليكم، محتاج أتواصل مع خدمة عملاء DevPlay"
+  );
+
+  const supportNumber =
+    typeof SUPPORT_WHATSAPP !== "undefined"
+      ? SUPPORT_WHATSAPP
+      : "201036797528";
+
+  const faqs = [
+    {
+      q: "مدة الشحن قد إيه؟",
+      a: "مدة الشحن غالبًا بتكون خلال دقائق، لكن أحيانًا ممكن تتأخر 3 إلى 4 ساعات لو خارج البيت، أو 8 إلى 9 ساعات أثناء النوم أو عدم التواجد بجانب الموبايل."
+    },
+    {
+      q: "إزاي أعمل طلب؟",
+      a: "اختار المنتج من المتجر، اكتب ID اللعبة أو رقم الموبايل حسب نوع الخدمة، ضيفه للسلة، وبعدها أكمل الطلب من صفحة الدفع."
+    },
+    {
+      q: "طرق الدفع المتاحة؟",
+      a: "الدفع حاليًا عن طريق فودافون كاش على الرقم الموجود في صفحة الدفع."
+    },
+    {
+      q: "الطلب اتأخر أعمل إيه؟",
+      a: "لو الطلب اتأخر، راجع حالة الطلب من صفحة تتبع الطلب. ولو محتاج مساعدة مباشرة اضغط على زر التحدث مع خدمة العملاء."
+    },
+    {
+      q: "كتبت ID أو رقم غلط؟",
+      a: "لو كتبت البيانات غلط، تواصل مع خدمة العملاء فورًا قبل تنفيذ الطلب."
+    },
+    {
+      q: "عايز أتحدث مع خدمة العملاء",
+      a: "اضغط الزر التالي للتواصل معنا على واتساب."
+    }
+  ];
+
+  const box = document.createElement("div");
+
+  box.id = "supportWidget";
+
+  box.innerHTML = `
+    <button class="support-bot-btn" onclick="toggleSupportChat()">
+      💬 خدمة العملاء
+    </button>
+
+    <div class="support-chat" id="supportChat">
+      <div class="support-chat-head">
+        <b>🤖 مساعد DevPlay</b>
+        <button class="close-support" onclick="toggleSupportChat()">×</button>
+      </div>
+
+      <div class="support-chat-body" id="supportChatBody">
+        <div class="bot-msg">
+          أهلاً بيك 👋  
+          اختار سؤال من الأسئلة دي:
+        </div>
+
+        ${faqs.map((item, index) => `
+          <button class="faq-btn" onclick="answerFaq(${index})">
+            ${item.q}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+
+    <div class="support-float">
+      <button class="support-whatsapp" onclick="openSupportWhatsApp()">
+        ☎
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(box);
+
+  window.supportFaqs = faqs;
+  window.supportNumber = supportNumber;
+  window.supportText = whatsappText;
+}
+
+function toggleSupportChat() {
+  const chat = document.getElementById("supportChat");
+  if (chat) chat.classList.toggle("show");
+}
+
+function answerFaq(index) {
+  const body = document.getElementById("supportChatBody");
+  const item = window.supportFaqs[index];
+
+  body.innerHTML += `
+    <div class="user-msg">${item.q}</div>
+    <div class="bot-msg">${item.a}</div>
+  `;
+
+  if (item.q.includes("خدمة العملاء")) {
+    body.innerHTML += `
+      <button class="btn green" style="width:100%;margin-top:8px" onclick="openSupportWhatsApp()">
+        فتح واتساب خدمة العملاء
+      </button>
+    `;
+  }
+
+  body.scrollTop = body.scrollHeight;
+}
+
+function openSupportWhatsApp() {
+  window.open(
+    `https://wa.me/${window.supportNumber}?text=${window.supportText}`,
+    "_blank"
+  );
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  supportWidget();
+});
