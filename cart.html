@@ -12,10 +12,15 @@
 </head>
 <body>
   <div id="top"></div>
+
   
 <section class="section container">
   <div class="layout-2">
-    <div class="glass card"><h2>السلة 🛒</h2><div id="cartItems"></div></div>
+    <div class="glass card">
+      <h2>السلة 🛒</h2>
+      <div id="cartItems"></div>
+    </div>
+
     <aside class="glass card">
       <h2>ملخص الطلب</h2>
       <div class="total" id="total">0 جنيه</div>
@@ -25,17 +30,55 @@
   </div>
 </section>
 
+
   <div id="foot"></div>
   <div id="toast" class="toast"></div>
+
   <script>
     document.getElementById("top").innerHTML = header("games");
     document.getElementById("foot").innerHTML = footer();
   </script>
+
   
 <script>
-function renderCart(){const c=cart();let total=0;document.getElementById("cartItems").innerHTML=c.length?c.map((item,index)=>{total+=Number(item.price);return `<div class="item-row"><div><b>${item.game}</b><p class="muted">${item.name}<br>${item.playerId}</p></div><div><b>${item.price} جنيه</b><br><button class="btn red" onclick="removeItem(${index})">حذف</button></div></div>`}).join(""):"<p class='muted'>السلة فارغة.</p>";document.getElementById("total").textContent=total+" جنيه";}
-function removeItem(index){const c=cart();c.splice(index,1);setCart(c);renderCart();}
-function clearCart(){setCart([]);renderCart();}
+function renderCart() {
+  const c = cart();
+  let total = 0;
+
+  document.getElementById("cartItems").innerHTML =
+    c.length
+      ? c.map((item, index) => {
+          total += Number(item.price);
+          return `
+            <div class="item-row">
+              <div>
+                <b>${item.game}</b>
+                <p class="muted">${item.name}<br>${item.playerId}</p>
+              </div>
+              <div>
+                <b>${item.price} جنيه</b><br>
+                <button class="btn red" onclick="removeItem(${index})">حذف</button>
+              </div>
+            </div>
+          `;
+        }).join("")
+      : "<p class='muted'>السلة فارغة.</p>";
+
+  document.getElementById("total").textContent = total + " جنيه";
+}
+
+function removeItem(index) {
+  const c = cart();
+  c.splice(index, 1);
+  setCart(c);
+  renderCart();
+}
+
+function clearCart() {
+  setCart([]);
+  renderCart();
+}
+
 renderCart();
 </script>
 
