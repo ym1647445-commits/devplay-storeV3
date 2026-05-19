@@ -203,6 +203,12 @@ ${WHATSAPP_CHANNEL}`
         <button class="btn dark" onclick="copyOrderData('${group.map(x => x.player_id || '').join(' / ')}')">
           نسخ البيانات
         </button>
+        <button
+  class="btn red"
+  onclick="deleteOrder('${first.order_code}')"
+>
+  حذف الطلب
+</button>
       </div>
     `;
   }).join("");
@@ -213,13 +219,21 @@ function copyOrderData(text) {
   toast("تم النسخ");
 }
 
-async function updateStatus(code, newStatus) {
+async function deleteOrder(code) {
+  if (!confirm("متأكدة من حذف الطلب؟")) {
+    return;
+  }
+
   const { error } = await client
     .from("orders")
-    .update({ status: newStatus })
+    .delete()
     .eq("order_code", code);
 
-  if (error) return alert(error.message);
+  if (error) {
+    return alert(error.message);
+  }
+
+  toast("تم حذف الطلب");
 
   load();
 }
