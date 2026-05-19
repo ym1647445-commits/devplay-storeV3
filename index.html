@@ -12,42 +12,68 @@
 </head>
 <body>
   <div id="top"></div>
+
   
 <section class="section container hero">
   <div class="hero-card glass">
     <div>
-      <span class="badge">Gaming Store</span>
-      <h1>DevPlay Store ⚡</h1>
-      <p>شحن ألعاب واشتراكات رقمية، حساب حقيقي، سجل شراء، عروض، وتتبع الطلبات من مكان واحد.</p>
-      <a class="btn" href="games.html">ابدأ الشحن</a>
-      <a class="btn dark" href="offers.html">شوف العروض</a>
+      <span class="badge">DevPlay Studio</span>
+      <h1>متجر DevPlay ⚡</h1>
+      <p>شحن ألعاب، رصيد، فكة، بطاقات، وعروض رقمية في مكان واحد.</p>
+      <p class="muted">مع تنبيه مدة الشحن حسب التواجد، وتتبع كامل للطلبات.</p>
+      <a class="btn" href="games.html">افتح المتجر</a>
+      <a class="btn dark" href="track.html">تتبع طلبك</a>
     </div>
-    <div class="hero-img"><img src="logo.png"></div>
+    <div class="hero-img">
+      <img src="logo.png" onerror="this.style.display='none'">
+    </div>
   </div>
 </section>
+
 <section class="section container">
-  <div class="section-head"><h2>الأكثر شحنًا 🔥</h2><a class="btn dark" href="games.html">عرض الكل</a></div>
-  <div class="grid" id="popular"></div>
+  <div class="section-head">
+    <h2>الأقسام</h2>
+    <a class="btn dark" href="games.html">عرض كل المنتجات</a>
+  </div>
+
+  <div class="grid">
+    <a class="card glass" href="games.html?cat=games"><h3>🎮 شحن ألعاب</h3><p class="muted">PUBG, Free Fire, COD, FC Mobile والمزيد</p></a>
+    <a class="card glass" href="games.html?cat=mobile"><h3>📱 شحن رصيد</h3><p class="muted">Vodafone, Orange, Etisalat</p></a>
+    <a class="card glass" href="games.html?cat=fakka"><h3>⚡ فكة</h3><p class="muted">باقات فكة للشبكات</p></a>
+    <a class="card glass" href="games.html?cat=cards"><h3>💳 بطاقات</h3><p class="muted">Steam US وخدمات رقمية</p></a>
+  </div>
 </section>
+
 <section class="section container">
-  <div class="section-head"><h2>العروض والإشعارات</h2><a class="btn dark" href="offers.html">كل العروض</a></div>
-  <div class="grid" id="homePosts"></div>
+  <div class="section-head">
+    <h2>الأكثر طلبًا 🔥</h2>
+    <a class="btn dark" href="games.html">المتجر</a>
+  </div>
+  <div class="grid" id="popularProducts"></div>
 </section>
+
 
   <div id="foot"></div>
   <div id="toast" class="toast"></div>
+
   <script>
     document.getElementById("top").innerHTML = header("home");
     document.getElementById("foot").innerHTML = footer();
   </script>
+
   
 <script>
-document.getElementById("popular").innerHTML=PRODUCTS.filter(p=>p.popular).slice(0,8).map(p=>productCard(p,PRODUCTS.indexOf(p))).join("");
-async function loadHomePosts(){
-  const {data}=await client.from("posts").select("*").order("created_at",{ascending:false}).limit(3);
-  document.getElementById("homePosts").innerHTML=(data||[]).map(p=>`<div class="card glass"><span class="badge">${p.type==="offer"?"🔥 عرض":"🔔 إشعار"}</span><h3>${p.title}</h3><p class="muted">${p.message}</p></div>`).join("")||"<p class='muted'>لا توجد عروض.</p>";
+async function initHome() {
+  await loadProductsFromDB();
+
+  const popular = PRODUCTS.filter(p => p.popular).slice(0, 8);
+
+  document.getElementById("popularProducts").innerHTML =
+    popular.length
+      ? popular.map(p => productCard(p, PRODUCTS.indexOf(p))).join("")
+      : "<p class='muted'>لا توجد منتجات مميزة حاليًا.</p>";
 }
-loadHomePosts();
+initHome();
 </script>
 
 </body>
