@@ -90,11 +90,16 @@ async function load() {
     .select("*")
     .order("created_at", { ascending: false });
 
-  if (error) return alert(error.message);
+  if (error) {
+    return alert(error.message);
+  }
 
   all = data || [];
+
+  console.log("ORDERS:", all);
+
   stats();
-  apply();
+  render(group(all));
 }
 
 function stats() {
@@ -109,8 +114,8 @@ function stats() {
 }
 
 function apply() {
-  const q = search.value.toLowerCase().trim();
-  const s = status.value;
+  const q = (search.value || "").toLowerCase().trim();
+  const s = status.value || "all";
 
   const rows = all.filter(order => {
     const text = `
@@ -122,9 +127,18 @@ function apply() {
       ${order.player_id || ""}
       ${order.package || ""}
       ${order.category || ""}
+      ${order.status || ""}
     `.toLowerCase();
 
-    return text.includes(q) && (s === "all" || order.status === s);
+    const matchSearch = q === "" || text.includes(q);
+
+    const matchStatus =
+      s === "all" ||
+      s === "" ||
+      order.status === s ||
+      !order.status;
+
+    return matchSearch && matchStatus;
   });
 
   render(group(rows));
