@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>إدارة المنتجات</title>
+
+<link rel="stylesheet" href="style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="config.js"></script>
+<script src="app.js"></script>
+
+</head>
+<body>
+
+<div id="top"></div>
+
+<section class="section container">
+
+<div class="glass card">
+
+<h2>إضافة منتج جديد</h2>
+
+<div class="grid">
+
+<input id="game" placeholder="اسم اللعبة">
+
+<input id="name" placeholder="اسم الباقة">
+
+<input id="price" type="number" placeholder="السعر">
+
+<input id="img" placeholder="رابط الصورة">
+
+<input id="need" placeholder="نوع البيانات المطلوبة">
+
+<select id="category">
+<option value="games">ألعاب</option>
+<option value="mobile">رصيد</option>
+<option value="fakka">فكة</option>
+<option value="cards">بطاقات</option>
+</select>
+
+<input id="offer" placeholder="عرض / لابل">
+
+</div>
+
+<div style="margin-top:20px">
+
+<label>
+
+<input type="checkbox" id="popular">
+
+منتج مميز
+
+</label>
+
+</div>
+
+<button class="btn" onclick="addProduct()">
+
+إضافة المنتج
+
+</button>
+
+</div>
+
+<div class="glass card" style="margin-top:20px">
+
+<h2>كل المنتجات</h2>
+
+<div id="products"></div>
+
+</div>
+
+</section>
+
+<div id="foot"></div>
+
+<script>
+
+top.innerHTML = header("admin");
+
+foot.innerHTML = footer();
+
+async function loadProducts(){
+
+const { data , error } = await client
+.from("products")
+.select("*")
+.order("created_at",{ascending:false});
+
+if(error){
+alert(error.message);
+return;
+}
+
+products.innerHTML = data.map(p=>`
+
+<div class="product-admin">
+
+<div>
+
+<h3>${p.game}</h3>
+
+<p>${p.name}</p>
+
+<p>${p.price} جنيه</p>
+
+<p>${p.category}</p>
+
+</div>
+
+<div class="admin-actions">
+
+<button class="btn red"
+onclick="deleteProduct(${p.id})">
+
+حذف
+
+</button>
+
+<button class="btn green"
+onclick="toggleProduct(${p.id},${p.active})">
+
+${p.active ? "إخفاء" : "تفعيل"}
+
+</button>
+
+</div>
+
+</div>
+
+`).join("");
+
+}
+
+async function addProduct(){
+
+const body = {
+
+game: game.value,
+
+name: name.value,
+
+price: Number(price.value),
+
+img: img.value,
+
+need: need.value,
+
+category: category.value,
+
+popular: popular.checked,
+
+offer_label: offer.value,
+
+active: true
+
+};
+
+const { error } = await client
+.from("products")
+.insert([body]);
+
+if(error){
+alert(error.message);
+return;
+}
+
+toast("تم إضافة المنتج");
+
+loadProducts();
+
+}
+
+async function deleteProduct(id){
+
+if(!confirm("حذف المنتج؟")) return;
+
+const { error } = await client
+.from("products")
+.delete()
+.eq("id",id);
+
+if(error){
+alert(error.message);
+return;
+}
+
+toast("تم الحذف");
+
+loadProducts();
+
+}
+
+async function toggleProduct(id,active){
+
+const { error } = await client
+.from("products")
+.update({
+active: !active
+})
+.eq("id",id);
+
+if(error){
+alert(error.message);
+return;
+}
+
+loadProducts();
+
+}
+
+loadProducts();
+
+</script>
+
+</body>
+</html>
