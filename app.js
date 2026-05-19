@@ -74,6 +74,9 @@ function header(active = "") {
           <a class="${active === "offers" ? "active" : ""}" href="offers.html">العروض</a>
           <a class="${active === "track" ? "active" : ""}" href="track.html">تتبع الطلب</a>
           <a class="${active === "account" ? "active" : ""}" href="account.html">حسابي</a>
+          <a class="${active === "wallet" ? "active" : ""}" href="wallet.html">
+  💰 رصيدي: <span data-wallet-balance>0</span> ج
+</a>
           <a class="cart-btn" href="cart.html">🛒 السلة <span data-cart-count>0</span></a>
         </nav>
       </div>
@@ -346,5 +349,39 @@ function openSupportWhatsApp() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  supportWidget();
+  updateCartCount();
+  updateWalletBalance();
 });
+async function updateWalletBalance() {
+  const user = await currentUser();
+
+  const holders = document.querySelectorAll("[data-wallet-balance]");
+
+  if (!holders.length) return;
+
+  if (!user) {
+    holders.forEach(el => {
+      el.textContent = "0";
+    });
+    return;
+  }
+
+  let { data: wallet } = await client
+    .from("wallets")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!wallet) {
+    await client.from("wallets").insert([{
+      user_id: user.id,
+      balance: 0
+    }]);
+
+    wallet = { balance: 0 };
+  }
+
+  holders.forEach(el => {
+    el.textContent = Number(wallet.balance || 0);
+  });
+}
