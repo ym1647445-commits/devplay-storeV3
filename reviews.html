@@ -3,32 +3,95 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إنشاء حساب - DevPlay</title>
-  <link rel="manifest" href="manifest.json">
+  <title>تقييم الخدمة - DevPlay</title>
+
   <link rel="stylesheet" href="style.css">
+
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
 </head>
+
 <body>
-  <div id="top"></div>
-  
+
+<div id="top"></div>
+
 <section class="section container">
-  <div class="glass card" style="max-width:480px;margin:auto">
-    <h2>إنشاء حساب</h2>
-    <div class="form"><input id="name" placeholder="الاسم"><input id="email" type="email" placeholder="البريد الإلكتروني"><input id="password" type="password" placeholder="كلمة المرور"><button class="btn" onclick="register()">إنشاء حساب</button><p class="muted">عندك حساب؟ <a href="login.html">دخول</a></p></div>
+
+  <div class="glass card" style="max-width:650px;margin:auto">
+
+    <h2>تقييم الخدمة ⭐</h2>
+
+    <p class="muted">
+      رأيك يهمنا ويساعدنا نطور DevPlay
+    </p>
+
+    <div class="form">
+
+      <label>اسمك</label>
+      <input id="customerName" placeholder="اكتب اسمك">
+
+      <label>التقييم</label>
+      <select id="rating">
+        <option value="5">⭐⭐⭐⭐⭐ ممتاز</option>
+        <option value="4">⭐⭐⭐⭐ جيد جدًا</option>
+        <option value="3">⭐⭐⭐ جيد</option>
+        <option value="2">⭐⭐ مقبول</option>
+        <option value="1">⭐ سيء</option>
+      </select>
+
+      <label>رأيك</label>
+      <textarea id="comment" rows="4" placeholder="اكتب رأيك في الخدمة"></textarea>
+
+      <button class="btn" onclick="sendReview()">
+        إرسال التقييم
+      </button>
+
+    </div>
+
   </div>
+
 </section>
 
-  <div id="foot"></div>
-  <div id="toast" class="toast"></div>
-  <script>
-    document.getElementById("top").innerHTML = header("account");
-    document.getElementById("foot").innerHTML = footer();
-  </script>
-  
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
+
 <script>
-async function register(){const {error}=await client.auth.signUp({email:email.value,password:password.value,options:{data:{name:name.value},emailRedirectTo:location.origin+location.pathname.replace("register.html","account.html")}});if(error)return alert(error.message);alert("افتح رابط التأكيد من الإيميل");}
+document.getElementById("top").innerHTML = header("offers");
+document.getElementById("foot").innerHTML = footer();
+
+async function sendReview() {
+
+  const name = customerName.value.trim();
+  const text = comment.value.trim();
+
+  if (!name) {
+    return toast("اكتب اسمك");
+  }
+
+  if (!text) {
+    return toast("اكتب رأيك");
+  }
+
+  const { error } = await client
+    .from("reviews")
+    .insert([{
+      customer_name: name,
+      rating: Number(rating.value),
+      comment: text
+    }]);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  toast("تم إرسال التقييم ✅");
+
+  setTimeout(() => {
+    location.href = "offers.html";
+  }, 1000);
+}
 </script>
 
 </body>
