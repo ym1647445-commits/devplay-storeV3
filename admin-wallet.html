@@ -3,65 +3,81 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إدارة المحفظة - DevPlay</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <title>إدارة المحفظة - DevPlay</title>
 </head>
 <body>
 <div id="top"></div>
-
 <section class="section container">
+
   <div id="guard" class="glass card" style="max-width:480px;margin:auto">
-    <h2>دخول إدارة المحفظة</h2>
-    <input id="pass" type="password" placeholder="كلمة السر">
-    <button class="btn" onclick="enter()">دخول</button>
+    <h2>دخول الأدمن</h2>
+    <div class="form">
+      <input id="adminEmail" type="email" placeholder="إيميل الأدمن">
+      <input id="adminPassword" type="password" placeholder="باسورد الأدمن">
+      <button class="btn" onclick="adminLogin()">دخول</button>
+    </div>
   </div>
 
   <div id="panel" style="display:none">
     <div class="section-head">
       <h2>طلبات إضافة الرصيد</h2>
-      <button class="btn" onclick="loadTopups()">تحديث</button>
+      <div>
+        <button class="btn" onclick="loadTopups()">تحديث</button>
+        <a class="btn dark" href="admin.html">طلبات الأدمن</a>
+        <a class="btn dark" href="admin-products.html">إدارة المنتجات</a>
+        <button class="btn red" onclick="adminLogout()">خروج الأدمن</button>
+      </div>
     </div>
-
-    <div class="filters">
-      <select id="filterStatus" onchange="renderTopups()">
-        <option value="all">كل الحالات</option>
-        <option value="pending">قيد المراجعة</option>
-        <option value="shipped">مقبول</option>
-        <option value="rejected">مرفوض</option>
-      </select>
-      <input id="search" oninput="renderTopups()" placeholder="بحث بالاسم / الرقم / الإيميل">
+    <div class="glass card">
+      <div class="filters">
+        <select id="filterStatus" onchange="renderTopups()">
+          <option value="all">كل الحالات</option>
+          <option value="pending">قيد المراجعة</option>
+          <option value="shipped">مقبول</option>
+          <option value="rejected">مرفوض</option>
+        </select>
+        <input id="search" oninput="renderTopups()" placeholder="بحث بالاسم / الرقم / الإيميل">
+      </div>
     </div>
-
-    <div id="topups"></div>
+    <div id="topups" style="margin-top:16px"></div>
   </div>
 </section>
-
 <div id="foot"></div>
 <div id="toast" class="toast"></div>
-
 <script>
 document.getElementById("top").innerHTML = header("admin");
 document.getElementById("foot").innerHTML = footer();
-
 let allTopups = [];
 
-function enter() {
-  if (pass.value !== ADMIN_PASSWORD) return alert("كلمة السر غلط");
+async function adminLogin() {
+  const { data, error } = await client.rpc("check_admin_login", {
+    admin_email: adminEmail.value.trim(),
+    admin_password: adminPassword.value
+  });
+
+  if (error) return alert(error.message);
+  if (data !== true) return alert("بيانات الأدمن غلط");
+
+  sessionStorage.setItem("devplay_admin", "yes");
   guard.style.display = "none";
   panel.style.display = "block";
-  loadTopups();
+  if (typeof load === "function") load();
+  if (typeof loadTopups === "function") loadTopups();
+  if (typeof loadProductsAdmin === "function") loadProductsAdmin();
+}
+
+function adminLogout() {
+  sessionStorage.removeItem("devplay_admin");
+  location.reload();
 }
 
 async function loadTopups() {
-  const { data, error } = await client
-    .from("wallet_topups")
-    .select("*")
-    .order("created_at", { ascending: false });
-
+  const { data, error } = await client.from("wallet_topups").select("*").order("created_at", { ascending: false });
   if (error) return alert(error.message);
   allTopups = data || [];
   renderTopups();
@@ -70,69 +86,40 @@ async function loadTopups() {
 function renderTopups() {
   const s = filterStatus.value;
   const q = search.value.toLowerCase().trim();
-
   const list = allTopups.filter(t => {
     const text = `${t.customer_name || ""} ${t.customer_email || ""} ${t.transfer_phone || ""} ${t.amount || ""}`.toLowerCase();
     return (s === "all" || t.status === s) && text.includes(q);
   });
-
-  topups.innerHTML =
-    list.length
-      ? list.map(t => `
-        <div class="glass card" style="margin-bottom:14px">
-          <h3>${t.customer_name || "-"} <span class="status ${statusClass(t.status)}">${statusText(t.status)}</span></h3>
-          <p><b>الإيميل:</b> ${t.customer_email || "-"}</p>
-          <p><b>الرقم المحول منه:</b> ${t.transfer_phone}</p>
-          <p><b>المبلغ:</b> ${t.amount} جنيه</p>
-          <p><b>رقم العملية:</b> ${t.payment_code || "-"}</p>
-
-          <a class="btn dark" target="_blank" href="${t.proof_url}">فتح صورة التحويل</a>
-          <button class="btn green" onclick="approveTopup(${t.id}, '${t.user_id}', ${Number(t.amount)})">قبول وإضافة الرصيد</button>
-          <button class="btn red" onclick="rejectTopup(${t.id})">رفض</button>
-          <button class="btn red" onclick="deleteTopup(${t.id})">حذف</button>
-        </div>
-      `).join("")
-      : "<div class='glass card'>لا توجد طلبات.</div>";
+  topups.innerHTML = list.length ? list.map(t => `
+    <div class="glass card" style="margin-bottom:14px">
+      <h3>${t.customer_name || "-"} <span class="status ${statusClass(t.status)}">${statusText(t.status)}</span></h3>
+      <p><b>الإيميل:</b> ${t.customer_email || "-"}</p>
+      <p><b>الرقم المحول منه:</b> ${t.transfer_phone}</p>
+      <p><b>المبلغ:</b> ${t.amount} جنيه</p>
+      <p><b>رقم العملية:</b> ${t.payment_code || "-"}</p>
+      <a class="btn dark" target="_blank" href="${t.proof_url}">فتح صورة التحويل</a>
+      <button class="btn green" onclick="approveTopup(${t.id}, '${t.user_id}', ${Number(t.amount)})">قبول وإضافة الرصيد</button>
+      <button class="btn red" onclick="rejectTopup(${t.id})">رفض</button>
+      <button class="btn red" onclick="deleteTopup(${t.id})">حذف</button>
+    </div>
+  `).join("") : "<div class='glass card'>لا توجد طلبات.</div>";
 }
 
 async function approveTopup(id, userId, amount) {
   if (!userId) return alert("الطلب غير مربوط بحساب، لازم العميل يسجل دخول.");
   if (!confirm("قبول الطلب وإضافة الرصيد؟")) return;
-
   let { data: wallet } = await client.from("wallets").select("*").eq("user_id", userId).maybeSingle();
-
   if (!wallet) {
     const { error: createError } = await client.from("wallets").insert([{ user_id: userId, balance: 0 }]);
     if (createError) return alert(createError.message);
     wallet = { balance: 0 };
   }
-
   const newBalance = Number(wallet.balance || 0) + Number(amount);
-
-  const { error: walletError } = await client
-    .from("wallets")
-    .update({ balance: newBalance, updated_at: new Date().toISOString() })
-    .eq("user_id", userId);
-
+  const { error: walletError } = await client.from("wallets").update({ balance: newBalance, updated_at: new Date().toISOString() }).eq("user_id", userId);
   if (walletError) return alert(walletError.message);
-
-  await client.from("wallet_transactions").insert([{
-    user_id: userId,
-    type: "credit",
-    amount: amount,
-    note: "إضافة رصيد من فودافون كاش",
-    ref_id: id
-  }]);
-
+  await client.from("wallet_transactions").insert([{ user_id: userId, type: "credit", amount: amount, note: "إضافة رصيد من فودافون كاش", ref_id: id }]);
   await client.from("wallet_topups").update({ status: "shipped" }).eq("id", id);
-
-  await client.from("notifications").insert([{
-    user_id: userId,
-    title: "تم إضافة الرصيد",
-    message: `تم إضافة ${amount} جنيه إلى محفظتك`,
-    type: "wallet"
-  }]);
-
+  await client.from("notifications").insert([{ user_id: userId, title: "تم إضافة الرصيد", message: `تم إضافة ${amount} جنيه إلى محفظتك`, type: "wallet" }]);
   toast("تم قبول الإضافة");
   loadTopups();
 }
@@ -150,6 +137,12 @@ async function deleteTopup(id) {
   const { error } = await client.from("wallet_topups").delete().eq("id", id);
   if (error) return alert(error.message);
   toast("تم الحذف");
+  loadTopups();
+}
+
+if (sessionStorage.getItem("devplay_admin") === "yes") {
+  guard.style.display = "none";
+  panel.style.display = "block";
   loadTopups();
 }
 </script>
