@@ -15,11 +15,13 @@
 
   
 <section class="section container">
+
   <div id="guard" class="glass card" style="max-width:480px;margin:auto">
-    <h2>دخول الأدمن</h2>
-    <input id="pass" type="password" placeholder="كلمة السر">
-    <button class="btn" onclick="enter()">دخول</button>
+    <h2>جاري التحقق من صلاحية الأدمن...</h2>
+    <p class="muted">لازم تكوني مسجلة دخول بحساب الأدمن.</p>
   </div>
+
+  <div id="panel" style="display:none">
 
   <div id="panel" style="display:none">
     <div class="grid">
@@ -61,11 +63,34 @@
 <script>
 let all = [];
 
-function enter() {
-  if (pass.value !== ADMIN_PASSWORD) return alert("كلمة السر غلط");
+async function checkAdmin() {
+  const user = await currentUser();
+
+  if (!user) {
+    alert("لازم تسجلي دخول الأول");
+    location.href = "login.html";
+    return;
+  }
+
+  const { data, error } = await client
+    .from("admin_users")
+    .select("*")
+    .eq("email", user.email)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (error || !data) {
+    guard.innerHTML = `
+      <h2>غير مصرح بالدخول</h2>
+      <p class="muted">هذا الحساب ليس أدمن.</p>
+      <a class="btn" href="index.html">الرجوع للرئيسية</a>
+    `;
+    return;
+  }
 
   guard.style.display = "none";
   panel.style.display = "block";
+
   load();
 }
 
@@ -272,6 +297,7 @@ async function deleteOrder(code) {
 
   load();
 }
+  checkAdmin();
 </script>
 
 </body>
