@@ -306,19 +306,12 @@ async function deleteOrder(code) {
     return;
   }
 
-  alert("الإيميل اللي داخل حاليًا هو: " + user.email);
+  const { data, error } = await client.rpc("is_admin");
 
-  const { data, error } = await client
-    .from("admin_users")
-    .select("*")
-    .ilike("email", user.email)
-    .eq("active", true)
-    .maybeSingle();
-
-  if (error || !data) {
+  if (error || data !== true) {
     guard.innerHTML = `
       <h2>غير مصرح بالدخول</h2>
-      <p class="muted">الإيميل الحالي: ${user.email}</p>
+      <p class="muted">الحساب الحالي ليس أدمن.</p>
       <a class="btn" href="index.html">الرجوع للرئيسية</a>
     `;
     return;
@@ -326,9 +319,9 @@ async function deleteOrder(code) {
 
   guard.style.display = "none";
   panel.style.display = "block";
-
   load();
 }
+  checkAdmin();
 </script>
 
 </body>
