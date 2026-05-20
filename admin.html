@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>لوحة الإدارة - DevPlay</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <title>لوحة الإدارة - DevPlay</title>
 </head>
 <body>
-  <div id="top"></div>
-
-  
+<div id="top"></div>
 <section class="section container">
 
   <div id="guard" class="glass card" style="max-width:480px;margin:auto">
-    <h2>جاري التحقق من صلاحية الأدمن...</h2>
-    <p class="muted">لازم تكوني مسجلة دخول بحساب الأدمن.</p>
+    <h2>دخول الأدمن</h2>
+    <div class="form">
+      <input id="adminEmail" type="email" placeholder="إيميل الأدمن">
+      <input id="adminPassword" type="password" placeholder="باسورد الأدمن">
+      <button class="btn" onclick="adminLogin()">دخول</button>
+    </div>
   </div>
-
-  <div id="panel" style="display:none">
 
   <div id="panel" style="display:none">
     <div class="grid">
@@ -42,7 +42,9 @@
         </select>
         <button class="btn" onclick="load()">تحديث</button>
         <a class="btn dark" href="admin-products.html">إدارة المنتجات</a>
+        <a class="btn dark" href="admin-wallet.html">إدارة المحفظة</a>
         <a class="btn" href="offers.html">العروض</a>
+        <button class="btn red" onclick="adminLogout()">خروج الأدمن</button>
       </div>
     </div>
 
@@ -50,279 +52,134 @@
   </div>
 </section>
 
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
 
-  <div id="foot"></div>
-  <div id="toast" class="toast"></div>
-
-  <script>
-    document.getElementById("top").innerHTML = header("admin");
-    document.getElementById("foot").innerHTML = footer();
-  </script>
-
-  
 <script>
+document.getElementById("top").innerHTML = header("admin");
+document.getElementById("foot").innerHTML = footer();
+
 let all = [];
 
-async function checkAdmin() {
-  const user = await currentUser();
+async function adminLogin() {
+  const { data, error } = await client.rpc("check_admin_login", {
+    admin_email: adminEmail.value.trim(),
+    admin_password: adminPassword.value
+  });
 
-  if (!user) {
-    alert("لازم تسجلي دخول الأول");
-    location.href = "login.html";
-    return;
-  }
+  if (error) return alert(error.message);
+  if (data !== true) return alert("بيانات الأدمن غلط");
 
-  const { data, error } = await client
-    .from("admin_users")
-    .select("*")
-    .eq("email", user.email)
-    .eq("active", true)
-    .maybeSingle();
-
-  if (error || !data) {
-    guard.innerHTML = `
-      <h2>غير مصرح بالدخول</h2>
-      <p class="muted">هذا الحساب ليس أدمن.</p>
-      <a class="btn" href="index.html">الرجوع للرئيسية</a>
-    `;
-    return;
-  }
-
+  sessionStorage.setItem("devplay_admin", "yes");
   guard.style.display = "none";
   panel.style.display = "block";
+  if (typeof load === "function") load();
+  if (typeof loadTopups === "function") loadTopups();
+  if (typeof loadProductsAdmin === "function") loadProductsAdmin();
+}
 
-  load();
+function adminLogout() {
+  sessionStorage.removeItem("devplay_admin");
+  location.reload();
 }
 
 function group(rows) {
   const groups = {};
-
   rows.forEach(row => {
     const code = row.order_code || "NO-CODE";
     if (!groups[code]) groups[code] = [];
     groups[code].push(row);
   });
-
   return Object.values(groups);
 }
 
 async function load() {
   search.value = "";
   status.value = "all";
-
-  const { data, error } = await client
-    .from("orders")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    return alert(error.message);
-  }
-
+  const { data, error } = await client.from("orders").select("*").order("created_at", { ascending: false });
+  if (error) return alert(error.message);
   all = data || [];
-
-  console.log("ORDERS:", all);
-
   stats();
   render(group(all));
 }
 
 function stats() {
   const groups = group(all);
-
   totalOrders.textContent = groups.length;
   pendingOrders.textContent = groups.filter(g => g[0].status === "pending").length;
   shippedOrders.textContent = groups.filter(g => g[0].status === "shipped").length;
-
-  revenue.textContent =
-    all.reduce((sum, order) => sum + Number(order.price || 0), 0) + " جنيه";
+  revenue.textContent = all.reduce((sum, order) => sum + Number(order.price || 0), 0) + " جنيه";
 }
 
 function apply() {
   const q = (search.value || "").toLowerCase().trim();
   const s = status.value || "all";
-
   const rows = all.filter(order => {
-    const text = `
-      ${order.order_code || ""}
-      ${order.customer_name || ""}
-      ${order.phone || ""}
-      ${order.customer_phone || ""}
-      ${order.game || ""}
-      ${order.player_id || ""}
-      ${order.package || ""}
-      ${order.category || ""}
-      ${order.status || ""}
-    `.toLowerCase();
-
-    const matchSearch = q === "" || text.includes(q);
-
-    const matchStatus =
-      s === "all" ||
-      s === "" ||
-      order.status === s ||
-      !order.status;
-
-    return matchSearch && matchStatus;
+    const text = `${order.order_code || ""} ${order.customer_name || ""} ${order.phone || ""} ${order.customer_phone || ""} ${order.game || ""} ${order.player_id || ""} ${order.package || ""} ${order.category || ""} ${order.status || ""}`.toLowerCase();
+    return (q === "" || text.includes(q)) && (s === "all" || s === "" || order.status === s || !order.status);
   });
-
   render(group(rows));
 }
 
 function render(groups) {
   if (!groups.length) {
-    orders.innerHTML = `
-      <div class="glass card">
-        لا توجد طلبات مطابقة. لو الإحصائيات فيها طلبات اختاري "كل الحالات" واضغطي تحديث.
-      </div>
-    `;
+    orders.innerHTML = `<div class="glass card">لا توجد طلبات مطابقة.</div>`;
     return;
   }
 
   orders.innerHTML = groups.map(group => {
     const first = group[0];
-
     const phone = String(first.phone || first.customer_phone || "").replace(/\D/g, "");
     const whatsappPhone = phone.startsWith("0") ? "20" + phone.slice(1) : phone;
-
-    const msg = encodeURIComponent(
-`تم تحديث طلبك في DevPlay ✅
-رقم الطلب: ${first.order_code}
-الحالة: ${statusText(first.status)}
-
-${WHATSAPP_CHANNEL}`
-    );
+    const msg = encodeURIComponent(`تم تحديث طلبك في DevPlay ✅\nرقم الطلب: ${first.order_code}\nالحالة: ${statusText(first.status)}\n\n${WHATSAPP_CHANNEL}`);
 
     return `
       <div class="glass card" style="margin-bottom:14px">
-        <h3>
-          ${first.order_code || "NO-CODE"}
-          <span class="status ${statusClass(first.status)}">${statusText(first.status)}</span>
-        </h3>
-
+        <h3>${first.order_code || "NO-CODE"} <span class="status ${statusClass(first.status)}">${statusText(first.status)}</span></h3>
         <p><b>العميل:</b> ${first.customer_name || "-"} - ${first.phone || first.customer_phone || "-"}</p>
-
-        ${group.map(item => `
-          <div class="item-row">
-            <b>${item.game || "-"}</b>
-            <span>
-              ${item.package || "-"} -
-              ${item.player_id || "-"} -
-              ${item.price || 0}ج
-            </span>
-          </div>
-        `).join("")}
-
+        ${group.map(item => `<div class="item-row"><b>${item.game || "-"}</b><span>${item.package || "-"} - ${item.player_id || "-"} - ${item.price || 0}ج</span></div>`).join("")}
         <br>
-
         <select onchange="updateStatus('${first.order_code}', this.value)">
           <option value="pending" ${first.status === "pending" ? "selected" : ""}>قيد المراجعة</option>
           <option value="shipped" ${first.status === "shipped" ? "selected" : ""}>تم الشحن</option>
           <option value="rejected" ${first.status === "rejected" ? "selected" : ""}>مرفوض</option>
         </select>
-
-        <button class="btn green" onclick="window.open('https://wa.me/${whatsappPhone}?text=${msg}', '_blank')">
-          واتساب
-        </button>
-
-        <button class="btn dark" onclick="copyOrderData('${group.map(x => x.player_id || '').join(' / ')}')">
-          نسخ البيانات
-        </button>
-        <button
-  class="btn red"
-  onclick="deleteOrder('${first.order_code}')"
->
-  حذف الطلب
-</button>
+        <button class="btn green" onclick="window.open('https://wa.me/${whatsappPhone}?text=${msg}', '_blank')">واتساب</button>
+        <button class="btn dark" onclick="copyOrderData('${group.map(x => x.player_id || '').join(' / ')}')">نسخ البيانات</button>
+        <button class="btn red" onclick="deleteOrder('${first.order_code}')">حذف الطلب</button>
       </div>
     `;
   }).join("");
 }
+
 async function updateStatus(code, newStatus) {
-
-  const { data, error } = await client
-    .from("orders")
-    .update({
-      status: newStatus
-    })
-    .eq("order_code", code)
-    .select();
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  if (!data || !data.length) {
-    alert("لم يتم تحديث أي طلب");
-    return;
-  }
-
+  const { data, error } = await client.from("orders").update({ status: newStatus }).eq("order_code", code).select();
+  if (error) return alert(error.message);
+  if (!data || !data.length) return alert("لم يتم تحديث أي طلب");
   toast("تم تحديث الحالة ✅");
-
-  all = all.map(order => {
-    if (order.order_code === code) {
-      return {
-        ...order,
-        status: newStatus
-      };
-    }
-
-    return order;
-  });
-
+  all = all.map(order => order.order_code === code ? { ...order, status: newStatus } : order);
   stats();
   render(group(all));
 }
+
 function copyOrderData(text) {
   navigator.clipboard.writeText(text);
   toast("تم النسخ");
 }
 
 async function deleteOrder(code) {
-  if (!confirm("متأكدة من حذف الطلب؟")) {
-    return;
-  }
-
-  const { error } = await client
-    .from("orders")
-    .delete()
-    .eq("order_code", code);
-
-  if (error) {
-    return alert(error.message);
-  }
-
+  if (!confirm("متأكدة من حذف الطلب؟")) return;
+  const { error } = await client.from("orders").delete().eq("order_code", code);
+  if (error) return alert(error.message);
   toast("تم حذف الطلب");
-
   load();
 }
- async function checkAdmin() {
-  const user = await currentUser();
 
-  if (!user) {
-    alert("لازم تسجلي دخول الأول");
-    location.href = "login.html";
-    return;
-  }
-
-  const { data, error } = await client.rpc("is_admin");
-
-  if (error || data !== true) {
-    guard.innerHTML = `
-      <h2>غير مصرح بالدخول</h2>
-      <p class="muted">الحساب الحالي ليس أدمن.</p>
-      <a class="btn" href="index.html">الرجوع للرئيسية</a>
-    `;
-    return;
-  }
-
+if (sessionStorage.getItem("devplay_admin") === "yes") {
   guard.style.display = "none";
   panel.style.display = "block";
   load();
 }
-  checkAdmin();
 </script>
-
 </body>
 </html>
