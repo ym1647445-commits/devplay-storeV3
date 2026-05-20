@@ -133,7 +133,49 @@ async function submitOrder() {
 
   const { error } = await client.from("orders").insert(rows);
   if (error) return alert(error.message);
+const itemsText = c.map(item =>
+`🎮 ${item.game}
+📦 ${item.name}
+🆔 ${item.playerId}
+💰 ${item.price} جنيه`
+).join("\\n\\n");
 
+const msg =
+`🛒 طلب جديد مدفوع من الرصيد
+
+🔢 رقم الطلب: ${code}
+
+👤 العميل: ${customerName.value}
+📱 واتساب: ${phone.value}
+📧 الحساب: ${loggedUser.email}
+
+🎮 الطلبات:
+${itemsText}
+
+💰 الإجمالي: ${orderTotal} جنيه
+💳 طريقة الدفع: رصيد الموقع
+
+📝 ملاحظات:
+${notes.value || "لا يوجد"}`;
+
+if (
+  typeof BOT_TOKEN !== "undefined" &&
+  typeof CHAT_ID !== "undefined" &&
+  BOT_TOKEN &&
+  CHAT_ID &&
+  BOT_TOKEN !== "PUT_TELEGRAM_BOT_TOKEN_HERE"
+) {
+  fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      chat_id: CHAT_ID,
+      text: msg
+    })
+  });
+}
   const newBalance = balance - orderTotal;
 
   const { error: walletError } = await client
