@@ -3,116 +3,123 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>إدارة المنتجات - DevPlay</title>
   <link rel="manifest" href="manifest.json">
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="config.js"></script>
   <script src="app.js"></script>
+  <title>إدارة المنتجات - DevPlay</title>
 </head>
 <body>
-  <div id="top"></div>
-
-  
+<div id="top"></div>
 <section class="section container">
-  <div class="glass card">
-    <h2>إدارة المنتجات</h2>
-    <p class="muted">من هنا تضيفي وتعدلي وتخفي المنتجات من المتجر.</p>
 
-    <div class="grid">
-      <input id="game" placeholder="اسم اللعبة / الخدمة">
-      <input id="name" placeholder="اسم الباقة">
-      <input id="price" type="number" step="0.01" placeholder="السعر">
-      <input id="img" placeholder="اسم الصورة مثل pubg.png">
-      <input id="need" placeholder="المطلوب من العميل: ID أو رقم أو إيميل">
-      <input id="offer_label" placeholder="عرض / لابل اختياري">
-
-      <select id="category">
-        <option value="games">ألعاب</option>
-        <option value="mobile">رصيد</option>
-        <option value="fakka">فكة</option>
-        <option value="cards">بطاقات</option>
-      </select>
-
-      <select id="popular">
-        <option value="false">عادي</option>
-        <option value="true">مميز</option>
-      </select>
+  <div id="guard" class="glass card" style="max-width:480px;margin:auto">
+    <h2>دخول الأدمن</h2>
+    <div class="form">
+      <input id="adminEmail" type="email" placeholder="إيميل الأدمن">
+      <input id="adminPassword" type="password" placeholder="باسورد الأدمن">
+      <button class="btn" onclick="adminLogin()">دخول</button>
     </div>
-
-    <br>
-    <button class="btn" onclick="saveProduct()">حفظ المنتج</button>
   </div>
 
-  <div class="glass card" style="margin-top:18px">
-    <h2>كل المنتجات</h2>
-    <input id="productSearch" placeholder="بحث في المنتجات" oninput="renderProducts()">
-    <div id="productsList" style="margin-top:16px"></div>
+  <div id="panel" style="display:none">
+    <div class="glass card">
+      <h2>إدارة المنتجات</h2>
+      <div class="grid">
+        <input id="game" placeholder="اسم اللعبة / الخدمة">
+        <input id="name" placeholder="اسم الباقة">
+        <input id="price" type="number" step="0.01" placeholder="السعر">
+        <input id="img" placeholder="اسم الصورة مثل pubg.png">
+        <input id="need" placeholder="المطلوب من العميل">
+        <input id="offer_label" placeholder="عرض / لابل اختياري">
+        <select id="category">
+          <option value="games">ألعاب</option>
+          <option value="mobile">رصيد</option>
+          <option value="fakka">فكة</option>
+          <option value="cards">بطاقات</option>
+        </select>
+        <select id="popular">
+          <option value="false">عادي</option>
+          <option value="true">مميز</option>
+        </select>
+      </div>
+      <br>
+      <button class="btn" onclick="saveProduct()">حفظ المنتج</button>
+      <a class="btn dark" href="admin.html">طلبات الأدمن</a>
+      <a class="btn dark" href="admin-wallet.html">إدارة المحفظة</a>
+      <button class="btn red" onclick="adminLogout()">خروج الأدمن</button>
+    </div>
+    <div class="glass card" style="margin-top:18px">
+      <h2>كل المنتجات</h2>
+      <input id="productSearch" placeholder="بحث في المنتجات" oninput="renderProducts()">
+      <div id="productsList" style="margin-top:16px"></div>
+    </div>
   </div>
 </section>
-
-
-  <div id="foot"></div>
-  <div id="toast" class="toast"></div>
-
-  <script>
-    document.getElementById("top").innerHTML = header("admin");
-    document.getElementById("foot").innerHTML = footer();
-  </script>
-
-  
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
 <script>
+document.getElementById("top").innerHTML = header("admin");
+document.getElementById("foot").innerHTML = footer();
 let adminProducts = [];
 let editingProductId = null;
 
-async function loadProductsAdmin() {
-  const { data, error } = await client
-    .from("products")
-    .select("*")
-    .order("created_at", { ascending: false });
+async function adminLogin() {
+  const { data, error } = await client.rpc("check_admin_login", {
+    admin_email: adminEmail.value.trim(),
+    admin_password: adminPassword.value
+  });
 
   if (error) return alert(error.message);
+  if (data !== true) return alert("بيانات الأدمن غلط");
 
+  sessionStorage.setItem("devplay_admin", "yes");
+  guard.style.display = "none";
+  panel.style.display = "block";
+  if (typeof load === "function") load();
+  if (typeof loadTopups === "function") loadTopups();
+  if (typeof loadProductsAdmin === "function") loadProductsAdmin();
+}
+
+function adminLogout() {
+  sessionStorage.removeItem("devplay_admin");
+  location.reload();
+}
+
+async function loadProductsAdmin() {
+  const { data, error } = await client.from("products").select("*").order("created_at", { ascending: false });
+  if (error) return alert(error.message);
   adminProducts = data || [];
   renderProducts();
 }
 
 function renderProducts() {
   const q = productSearch.value.toLowerCase().trim();
-
-  const list = adminProducts.filter(p => {
-    const text = `${p.game} ${p.name} ${p.category} ${p.price}`.toLowerCase();
-    return text.includes(q);
-  });
-
-  productsList.innerHTML =
-    list.length
-      ? list.map(p => `
-        <div class="glass card" style="margin-bottom:12px">
-          <div class="item-row">
-            <div>
-              <h3>${p.game}</h3>
-              <p class="muted">${p.name}</p>
-              <p>${p.price} جنيه - ${categoryLabel(p.category)}</p>
-              <p class="muted">المطلوب: ${p.need || "-"}</p>
-              <p class="muted">الحالة: ${p.active ? "ظاهر" : "مخفي"}</p>
-            </div>
-
-            <div>
-              <button class="btn" onclick="fillEdit(${p.id})">تعديل</button>
-              <button class="btn dark" onclick="toggleProduct(${p.id}, ${p.active})">${p.active ? "إخفاء" : "إظهار"}</button>
-              <button class="btn red" onclick="deleteProduct(${p.id})">حذف</button>
-            </div>
-          </div>
+  const list = adminProducts.filter(p => `${p.game} ${p.name} ${p.category} ${p.price}`.toLowerCase().includes(q));
+  productsList.innerHTML = list.length ? list.map(p => `
+    <div class="glass card" style="margin-bottom:12px">
+      <div class="item-row">
+        <div>
+          <h3>${p.game}</h3>
+          <p class="muted">${p.name}</p>
+          <p>${p.price} جنيه - ${categoryLabel(p.category)}</p>
+          <p class="muted">المطلوب: ${p.need || "-"}</p>
+          <p class="muted">الحالة: ${p.active ? "ظاهر" : "مخفي"}</p>
         </div>
-      `).join("")
-      : "<p class='muted'>لا توجد منتجات.</p>";
+        <div>
+          <button class="btn" onclick="fillEdit(${p.id})">تعديل</button>
+          <button class="btn dark" onclick="toggleProduct(${p.id}, ${p.active})">${p.active ? "إخفاء" : "إظهار"}</button>
+          <button class="btn red" onclick="deleteProduct(${p.id})">حذف</button>
+        </div>
+      </div>
+    </div>
+  `).join("") : "<p class='muted'>لا توجد منتجات.</p>";
 }
 
 function fillEdit(id) {
   const p = adminProducts.find(x => x.id === id);
   if (!p) return;
-
   game.value = p.game || "";
   name.value = p.name || "";
   price.value = p.price || "";
@@ -121,7 +128,6 @@ function fillEdit(id) {
   offer_label.value = p.offer_label || "";
   category.value = p.category || "games";
   popular.value = String(!!p.popular);
-
   editingProductId = id;
   toast("عدلي البيانات واضغطي حفظ المنتج");
 }
@@ -138,69 +144,40 @@ async function saveProduct() {
     offer_label: offer_label.value || null,
     active: true
   };
-
-  if (!body.game || !body.name || !body.price) {
-    return toast("اكتبي اسم الخدمة والباقة والسعر");
-  }
-
+  if (!body.game || !body.name || !body.price) return toast("اكتبي اسم الخدمة والباقة والسعر");
   let error;
-
   if (editingProductId) {
-    const res = await client
-      .from("products")
-      .update(body)
-      .eq("id", editingProductId);
-
+    const res = await client.from("products").update(body).eq("id", editingProductId);
     error = res.error;
     editingProductId = null;
   } else {
-    const res = await client
-      .from("products")
-      .insert([body]);
-
+    const res = await client.from("products").insert([body]);
     error = res.error;
   }
-
   if (error) return alert(error.message);
-
   toast("تم الحفظ ✅");
-
-  game.value = "";
-  name.value = "";
-  price.value = "";
-  img.value = "";
-  need.value = "";
-  offer_label.value = "";
-
+  game.value = ""; name.value = ""; price.value = ""; img.value = ""; need.value = ""; offer_label.value = "";
   loadProductsAdmin();
 }
 
 async function toggleProduct(id, active) {
-  const { error } = await client
-    .from("products")
-    .update({ active: !active })
-    .eq("id", id);
-
+  const { error } = await client.from("products").update({ active: !active }).eq("id", id);
   if (error) return alert(error.message);
-
   loadProductsAdmin();
 }
 
 async function deleteProduct(id) {
   if (!confirm("حذف المنتج؟")) return;
-
-  const { error } = await client
-    .from("products")
-    .delete()
-    .eq("id", id);
-
+  const { error } = await client.from("products").delete().eq("id", id);
   if (error) return alert(error.message);
-
   loadProductsAdmin();
 }
 
-loadProductsAdmin();
+if (sessionStorage.getItem("devplay_admin") === "yes") {
+  guard.style.display = "none";
+  panel.style.display = "block";
+  loadProductsAdmin();
+}
 </script>
-
 </body>
 </html>
