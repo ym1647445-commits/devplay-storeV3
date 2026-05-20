@@ -213,7 +213,42 @@ ${WHATSAPP_CHANNEL}`
     `;
   }).join("");
 }
+async function updateStatus(code, newStatus) {
 
+  const { data, error } = await client
+    .from("orders")
+    .update({
+      status: newStatus
+    })
+    .eq("order_code", code)
+    .select();
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  if (!data || !data.length) {
+    alert("لم يتم تحديث أي طلب");
+    return;
+  }
+
+  toast("تم تحديث الحالة ✅");
+
+  all = all.map(order => {
+    if (order.order_code === code) {
+      return {
+        ...order,
+        status: newStatus
+      };
+    }
+
+    return order;
+  });
+
+  stats();
+  render(group(all));
+}
 function copyOrderData(text) {
   navigator.clipboard.writeText(text);
   toast("تم النسخ");
