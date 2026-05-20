@@ -297,7 +297,38 @@ async function deleteOrder(code) {
 
   load();
 }
-  checkAdmin();
+ async function checkAdmin() {
+  const user = await currentUser();
+
+  if (!user) {
+    alert("لازم تسجلي دخول الأول");
+    location.href = "login.html";
+    return;
+  }
+
+  alert("الإيميل اللي داخل حاليًا هو: " + user.email);
+
+  const { data, error } = await client
+    .from("admin_users")
+    .select("*")
+    .ilike("email", user.email)
+    .eq("active", true)
+    .maybeSingle();
+
+  if (error || !data) {
+    guard.innerHTML = `
+      <h2>غير مصرح بالدخول</h2>
+      <p class="muted">الإيميل الحالي: ${user.email}</p>
+      <a class="btn" href="index.html">الرجوع للرئيسية</a>
+    `;
+    return;
+  }
+
+  guard.style.display = "none";
+  panel.style.display = "block";
+
+  load();
+}
 </script>
 
 </body>
