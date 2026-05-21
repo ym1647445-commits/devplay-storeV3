@@ -173,13 +173,16 @@ async function sendTopup() {
 📸 صورة التحويل:
 ${proofUrl}`;
 
-  if (typeof WALLET_BOT_TOKEN !== "undefined" && typeof WALLET_CHAT_ID !== "undefined" && WALLET_BOT_TOKEN && WALLET_CHAT_ID) {
-    fetch(`https://api.telegram.org/bot${WALLET_BOT_TOKEN}/sendMessage`, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ chat_id: WALLET_CHAT_ID, text: msg })
-    });
-  }
+  fetch("https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    type: "wallet",
+    message: msg
+  })
+});
 
   toast("تم إرسال طلب إضافة الرصيد ✅");
   setTimeout(() => location.reload(), 1000);
