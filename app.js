@@ -385,3 +385,30 @@ async function updateWalletBalance() {
     el.textContent = Number(wallet.balance || 0);
   });
 }
+function floatingButtons() {
+  if (document.getElementById("floatingButtons")) return;
+
+  const box = document.createElement("div");
+  box.id = "floatingButtons";
+
+  box.innerHTML = `
+    <button class="float-bot" onclick="toggleSupportChat()">
+      💬 خدمة العملاء
+    </button>
+
+    <button class="float-whatsapp" onclick="window.open('https://wa.me/201036797528?text=السلام عليكم، محتاج خدمة العملاء', '_blank')">
+      واتساب
+    </button>
+
+    <button class="float-cart" onclick="location.href='cart.html'">
+      🛒 السلة <span data-cart-count>0</span>
+    </button>
+  `;
+
+  document.body.appendChild(box);
+  updateCartCount();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  floatingButtons();
+});
