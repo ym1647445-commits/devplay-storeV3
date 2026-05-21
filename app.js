@@ -412,3 +412,110 @@ function floatingButtons() {
 document.addEventListener("DOMContentLoaded", () => {
   floatingButtons();
 });
+function smartSupportBot() {
+  if (document.getElementById("aiSupportWidget")) return;
+
+  const phone = "201036797528";
+
+  const options = [
+    {
+      q: "طريقة الشحن إزاي؟",
+      a: "اختاري المنتج من المتجر، اكتبي ID اللعبة أو رقم الموبايل حسب الخدمة، ضيفيه للسلة، وبعدها ادفعي من رصيد المحفظة. لو رصيدك مش كافي، ادخلي على محفظتي واعملي طلب إضافة رصيد بصورة التحويل."
+    },
+    {
+      q: "الشحن بياخد قد إيه؟",
+      a: "غالبًا الشحن بيتم خلال دقائق، لكن أحيانًا ممكن يتأخر 3 إلى 4 ساعات لو الإدارة خارج البيت، أو 8 إلى 9 ساعات أثناء النوم أو عدم التواجد بجانب الموبايل."
+    },
+    {
+      q: "الرصيد مضافش بعد التحويل",
+      a: "لو حولتي ورفعتي صورة التحويل ولسه الرصيد مضافش، ابعتي لخدمة العملاء رقم التحويل، الرقم اللي حولتي منه، والمبلغ.",
+      whatsapp: "السلام عليكم، حولت رصيد للمحفظة ولسه مضافش. الرقم اللي حولت منه: ، المبلغ: ، رقم العملية: "
+    },
+    {
+      q: "الطلب اتأخر",
+      a: "لو الطلب اتأخر، افتحي صفحة تتبع الطلب وشوفي حالته. لو بقاله وقت طويل، ابعتي رقم الطلب لخدمة العملاء.",
+      whatsapp: "السلام عليكم، طلبي اتأخر. رقم الطلب: "
+    },
+    {
+      q: "كتبت ID أو رقم غلط",
+      a: "لو كتبتي ID أو رقم غلط، تواصلي فورًا قبل تنفيذ الطلب. بعد التنفيذ قد لا يمكن الإلغاء حسب نوع الخدمة.",
+      whatsapp: "السلام عليكم، كتبت بيانات غلط في الطلب. رقم الطلب: ، البيانات الصح: "
+    },
+    {
+      q: "إزاي أتتبع طلبي؟",
+      a: "ادخلي صفحة تتبع الطلب واكتبي رقم الطلب، أو افتحي حسابي وهتلاقي سجل الشحن وحالة كل طلب."
+    },
+    {
+      q: "طرق الدفع المتاحة",
+      a: "الدفع داخل الموقع من رصيد المحفظة فقط. لإضافة رصيد، حولي على فودافون كاش ثم ارفعي صورة التحويل من صفحة محفظتي."
+    },
+    {
+      q: "التحدث مع خدمة العملاء",
+      a: "اضغطي الزر الأخضر وسيتم فتح واتساب للتواصل المباشر.",
+      whatsapp: "السلام عليكم، محتاج خدمة العملاء."
+    }
+  ];
+
+  const box = document.createElement("div");
+  box.id = "aiSupportWidget";
+
+  box.innerHTML = `
+    <button class="ai-chat-btn" onclick="toggleAiChat()">
+      🤖 مساعد DevPlay
+    </button>
+
+    <div class="ai-chat-box" id="aiChatBox">
+      <div class="ai-chat-head">
+        <b>🤖 مساعد DevPlay الذكي</b>
+        <button class="ai-close" onclick="toggleAiChat()">×</button>
+      </div>
+
+      <div class="ai-chat-body" id="aiChatBody">
+        <div class="ai-msg ai-bot">
+          أهلاً بيك في DevPlay 👋<br>
+          اختاري المشكلة أو السؤال، وأنا هقولك الحل بسرعة.
+        </div>
+
+        ${options.map((item, index) => `
+          <button class="ai-option" onclick="aiAnswer(${index})">
+            ${item.q}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(box);
+  window.aiSupportOptions = options;
+  window.aiSupportPhone = phone;
+}
+
+function toggleAiChat() {
+  const chat = document.getElementById("aiChatBox");
+  if (chat) chat.classList.toggle("show");
+}
+
+function aiAnswer(index) {
+  const item = window.aiSupportOptions[index];
+  const body = document.getElementById("aiChatBody");
+
+  body.innerHTML += `
+    <div class="ai-msg ai-user">${item.q}</div>
+    <div class="ai-msg ai-bot">${item.a}</div>
+  `;
+
+  if (item.whatsapp) {
+    const text = encodeURIComponent(item.whatsapp);
+    body.innerHTML += `
+      <a class="ai-whatsapp" target="_blank" href="https://wa.me/${window.aiSupportPhone}?text=${text}">
+        فتح واتساب خدمة العملاء
+      </a>
+    `;
+  }
+
+  body.scrollTop = body.scrollHeight;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  smartSupportBot();
+});
