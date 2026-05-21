@@ -158,24 +158,16 @@ ${itemsText}
 📝 ملاحظات:
 ${notes.value || "لا يوجد"}`;
 
-if (
-  typeof BOT_TOKEN !== "undefined" &&
-  typeof CHAT_ID !== "undefined" &&
-  BOT_TOKEN &&
-  CHAT_ID &&
-  BOT_TOKEN !== "PUT_TELEGRAM_BOT_TOKEN_HERE"
-) {
-  fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      chat_id: CHAT_ID,
-      text: msg
-    })
-  });
-}
+fetch("https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json"
+  },
+  body: JSON.stringify({
+    type: "order",
+    message: msg
+  })
+});
   const newBalance = balance - orderTotal;
 
   const { error: walletError } = await client
