@@ -168,3 +168,35 @@ label{font-weight:800;color:#e2e8f0}
   font-size: 22px;
   cursor: pointer;
 }
+.float-cart,
+.float-whatsapp,
+.float-bot {
+  position: fixed;
+  left: 18px;
+  z-index: 9999;
+  border: none;
+  border-radius: 999px;
+  padding: 13px 16px;
+  font-weight: 900;
+  box-shadow: 0 10px 30px #0008;
+  cursor: pointer;
+}
+
+.float-cart {
+  bottom: 20px;
+  background: linear-gradient(90deg,#7c3aed,#2563eb);
+  color: white;
+}
+
+.float-whatsapp {
+  bottom: 78px;
+  background: #25d366;
+  color: white;
+}
+
+.float-bot {
+  bottom: 136px;
+  background: #111827;
+  color: white;
+  border: 1px solid #ffffff22;
+}
