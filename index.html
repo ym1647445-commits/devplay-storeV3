@@ -1,5 +1,120 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script><title>DevPlay Neon</title></head><body><div id="top"></div>
-<section class="section container"><div class="hero-v3"><div class="hero-v3-content"><span class="badge">🎮 DevPlay Store</span><h1>اشحن ألعابك <b>بأفضل الأسعار</b></h1><p>تجربة متجر مختلفة، سريعة، متحركة، ومناسبة للموبايل. اشحني محفظتك واطلبي أي خدمة بسهولة.</p><div class="hero-actions"><a class="btn pink" href="games.html">تسوق الآن ⚡</a><a class="btn dark" href="wallet.html">إضافة رصيد</a></div><div class="feature-row"><div class="feature-card"><div class="ico">⚡</div><b>تسليم سريع</b><span class="muted">خدمة مرنة</span></div><div class="feature-card"><div class="ico">🛡️</div><b>آمن 100%</b><span class="muted">حماية بياناتك</span></div><div class="feature-card"><div class="ico">💬</div><b>دعم مباشر</b><span class="muted">واتساب وبوت</span></div></div></div><div class="hero-dots"><span class="active"></span><span></span><span></span></div></div></section>
-<section class="section container"><div class="section-head"><h2>🔥 أقسام DevPlay</h2><a class="btn dark" href="games.html">عرض الكل</a></div><div class="grid"><a class="card glass" href="games.html?cat=games"><h3>🎮 ألعاب</h3><p class="muted">شحن ID للألعاب.</p></a><a class="card glass" href="games.html?cat=mobile"><h3>📱 رصيد</h3><p class="muted">فودافون، أورنج، اتصالات.</p></a><a class="card glass" href="games.html?cat=fakka"><h3>⚡ كروت فكة</h3><p class="muted">فروع منظمة لكل شبكة.</p></a><a class="card glass" href="games.html?cat=cards"><h3>💳 بطاقات</h3><p class="muted">بطاقات وخدمات رقمية.</p></a></div></section>
-<section class="section container"><div class="section-head"><h2>🎯 ألعاب شهيرة</h2><a class="btn dark" href="games.html">المتجر</a></div><div class="grid" id="popularProducts"></div></section><section class="section container"><div class="flash-banner"><h2>FLASH SALE</h2><p class="muted">عروض محدودة تظهر هنا بشكل احترافي.</p><div class="countdown"><span>23<br>ساعة</span><span>45<br>دقيقة</span><span>12<br>ثانية</span></div><br><a class="btn pink" href="offers.html">اكتشف الآن</a></div></section>
-<div class="modal" id="modal"><div class="modal-box glass"><button class="close" onclick="closeModal()">×</button><div id="modalInfo"></div><input id="playerInput"><button class="btn" onclick="confirmAdd()">إضافة للسلة</button></div></div><div id="foot"></div><div id="toast" class="toast"></div><script>document.getElementById("top").innerHTML=header("home");document.getElementById("foot").innerHTML=footer();async function initHome(){renderSkeleton("popularProducts",8);await loadProductsFromDB();const popular=PRODUCTS.filter(p=>p.popular).slice(0,8);popularProducts.innerHTML=popular.length?popular.map(p=>productCard(p,PRODUCTS.indexOf(p))).join(""):"<p class='muted'>لا توجد منتجات مميزة حاليًا.</p>"}initHome();</script></body></html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+  <title>DevPlay Neon</title>
+</head>
+
+<body>
+<div id="top"></div>
+
+<section class="section container">
+  <div class="hero-image-slider" id="heroImageSlider">
+
+    <a href="offers.html" class="hero-img-slide active">
+      <img src="PUBGhero.png" alt="PUBG Offers">
+    </a>
+
+    <a href="offers.html" class="hero-img-slide">
+      <img src="codhero.png" alt="COD Offers">
+    </a>
+
+    <a href="offers.html" class="hero-img-slide">
+      <img src="freefirehero.png" alt="Free Fire Offers">
+    </a>
+
+    <a href="wallet.html" class="hero-img-slide">
+      <img src="topuphero.png" alt="Top Up">
+    </a>
+
+    <a href="offers.html" class="hero-img-slide">
+      <img src="offerhero.png" alt="Special Offers">
+    </a>
+
+    <div class="hero-img-dots">
+      <button class="active" onclick="showHeroSlide(0)"></button>
+      <button onclick="showHeroSlide(1)"></button>
+      <button onclick="showHeroSlide(2)"></button>
+      <button onclick="showHeroSlide(3)"></button>
+      <button onclick="showHeroSlide(4)"></button>
+    </div>
+
+  </div>
+</section>
+
+<section class="section container">
+  <div class="section-head">
+    <h2>🔥 أقسام DevPlay</h2>
+    <a class="btn dark" href="games.html">عرض الكل</a>
+  </div>
+
+  <div class="grid">
+    <a class="card glass" href="games.html?cat=games">
+      <h3>🎮 ألعاب</h3>
+      <p class="muted">شحن ID للألعاب.</p>
+    </a>
+
+    <a class="card glass" href="games.html?cat=mobile">
+      <h3>📱 رصيد</h3>
+      <p class="muted">فودافون، أورنج، اتصالات.</p>
+    </a>
+
+    <a class="card glass" href="games.html?cat=fakka">
+      <h3>⚡ كروت فكة</h3>
+      <p class="muted">فروع منظمة لكل شبكة.</p>
+    </a>
+
+    <a class="card glass" href="games.html?cat=cards">
+      <h3>💳 بطاقات</h3>
+      <p class="muted">بطاقات وخدمات رقمية.</p>
+    </a>
+  </div>
+</section>
+
+<section class="section container">
+  <div class="section-head">
+    <h2>🎯 ألعاب شهيرة</h2>
+    <a class="btn dark" href="games.html">المتجر</a>
+  </div>
+
+  <div class="grid" id="popularProducts"></div>
+</section>
+
+<div class="modal" id="modal">
+  <div class="modal-box glass">
+    <button class="close" onclick="closeModal()">×</button>
+    <div id="modalInfo"></div>
+    <input id="playerInput">
+    <button class="btn" onclick="confirmAdd()">إضافة للسلة</button>
+  </div>
+</div>
+
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+document.getElementById("top").innerHTML = header("home");
+document.getElementById("foot").innerHTML = footer();
+
+async function initHome() {
+  renderSkeleton("popularProducts", 8);
+  await loadProductsFromDB();
+
+  const popular = PRODUCTS.filter(p => p.popular).slice(0, 8);
+
+  popularProducts.innerHTML = popular.length
+    ? popular.map(p => productCard(p, PRODUCTS.indexOf(p))).join("")
+    : "<p class='muted'>لا توجد منتجات مميزة حاليًا.</p>";
+}
+
+initHome();
+</script>
+
+</body>
+</html>
