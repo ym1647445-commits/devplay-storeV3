@@ -209,5 +209,17 @@ ${proofUrl}`;
 
 loadWallet();
 </script>
+  <script>
+function copyCashNumber() {
+
+  const number =
+    document.getElementById("vodafoneCash")
+    .innerText;
+
+  navigator.clipboard.writeText(number);
+
+  toast("تم نسخ الرقم ✅");
+}
+</script>
 </body>
 </html>
