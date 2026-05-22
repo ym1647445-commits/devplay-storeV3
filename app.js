@@ -1,35 +1,399 @@
+// DevPlay Emergency Stable App.js
+const DEVPLAY_SUPABASE_KEY =
+  typeof SUPABASE_KEY !== "undefined"
+    ? SUPABASE_KEY
+    : typeof SUPABASE_ANON_KEY !== "undefined"
+      ? SUPABASE_ANON_KEY
+      : "";
 
-// DevPlay Pro app.js - replace your app.js with this file
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const client = supabase.createClient(SUPABASE_URL, DEVPLAY_SUPABASE_KEY);
+
 let PRODUCTS = [];
 let selectedProduct = null;
+
 const FALLBACK_PRODUCTS = [
-  {id:1,category:"games",game:"PUBG",name:"60 UC",price:55,img:"pubg.png",need:"ID ببجي",popular:true,active:true},
-  {id:2,category:"games",game:"Free Fire",name:"100 جوهرة",price:65,img:"free_fire.png",need:"ID فري فاير",popular:true,active:true},
-  {id:3,category:"games",game:"COD",name:"80 CP",price:60,img:"callofduty.png",need:"ID كول أوف ديوتي",popular:true,active:true},
-  {id:4,category:"mobile",game:"رصيد فودافون",name:"رصيد 10 جنيه",price:21.29,img:"vod.png",need:"رقم الموبايل",popular:true,active:true}
+  {id:1,category:"games",game:"PUBG MOBILE",name:"60 UC",price:55,img:"pubg.png",need:"ID ببجي",popular:true,active:true},
+  {id:2,category:"games",game:"PUBG MOBILE",name:"325 UC",price:220,img:"pubg.png",need:"ID ببجي",popular:true,active:true},
+  {id:3,category:"games",game:"Free Fire",name:"100 جوهرة",price:65,img:"free_fire.png",need:"ID فري فاير",popular:true,active:true},
+  {id:4,category:"games",game:"Call of Duty",name:"80 CP",price:60,img:"callofduty.png",need:"ID كول أوف ديوتي",popular:true,active:true},
+  {id:5,category:"games",game:"FC Mobile",name:"40 FC",price:30,img:"fc.png",need:"ID اللعبة",popular:true,active:true},
+  {id:6,category:"mobile",game:"رصيد فودافون",name:"رصيد 10 جنيه",price:21.29,img:"vod.png",need:"رقم الموبايل",popular:true,active:true},
+  {id:7,category:"mobile",game:"رصيد أورنج",name:"رصيد 10 جنيه",price:21.29,img:"orange.png",need:"رقم الموبايل",popular:false,active:true},
+  {id:8,category:"mobile",game:"رصيد اتصالات",name:"رصيد 10 جنيه",price:21.29,img:"e.png",need:"رقم الموبايل",popular:false,active:true}
 ];
-async function loadProductsFromDB(){const{data,error}=await client.from("products").select("*").eq("active",true).order("category",{ascending:true}).order("game",{ascending:true}).order("price",{ascending:true});PRODUCTS=(!error&&data&&data.length)?data:FALLBACK_PRODUCTS;return PRODUCTS}
-function cart(){return JSON.parse(localStorage.getItem("cart")||"[]")}
-function setCart(c){localStorage.setItem("cart",JSON.stringify(c));updateCartCount()}
-function updateCartCount(){document.querySelectorAll("[data-cart-count]").forEach(el=>{el.textContent=cart().length})}
-function toast(msg){const t=document.getElementById("toast");if(!t)return alert(msg);t.textContent=msg;t.style.display="block";setTimeout(()=>t.style.display="none",2600)}
-async function currentUser(){const{data:{user}}=await client.auth.getUser();return user}
-async function updateWalletBalance(){const holders=document.querySelectorAll("[data-wallet-balance]");if(!holders.length)return;const user=await currentUser();if(!user){holders.forEach(el=>el.textContent="0");return}let{data:wallet}=await client.from("wallets").select("*").eq("user_id",user.id).maybeSingle();if(!wallet){await client.from("wallets").insert([{user_id:user.id,balance:0}]);wallet={balance:0}}holders.forEach(el=>el.textContent=Number(wallet.balance||0))}
-function header(active=""){return `<header class="main-header"><div class="container nav-wrap"><a class="logo-area" href="index.html"><img src="logo.png" onerror="this.style.display='none'"><h1>DevPlay</h1></a><button class="menu-btn" onclick="toggleMenu()">☰</button><nav id="mobileMenu" class="nav-links"><a class="${active==="home"?"active":""}" href="index.html">الرئيسية</a><a class="${active==="games"?"active":""}" href="games.html">المتجر</a><a class="${active==="offers"?"active":""}" href="offers.html">العروض</a><a class="${active==="track"?"active":""}" href="track.html">تتبع الطلب</a><a class="${active==="account"?"active":""}" href="account.html">حسابي</a><a class="wallet-pill ${active==="wallet"?"active":""}" href="wallet.html">💰 رصيدي: <span data-wallet-balance>0</span> ج</a><a class="cart-btn" href="cart.html">🛒 السلة <span data-cart-count>0</span></a></nav></div></header>`}
-function bottomNav(active=""){return `<nav class="bottom-nav"><a class="${active==="home"?"active":""}" href="index.html"><span class="ico">🏠</span><span>الرئيسية</span></a><a class="${active==="games"?"active":""}" href="games.html"><span class="ico">🎮</span><span>المتجر</span></a><a class="${active==="wallet"?"active":""}" href="wallet.html"><span class="ico">💰</span><span>الرصيد</span></a><a class="${active==="track"?"active":""}" href="track.html"><span class="ico">📦</span><span>تتبع</span></a><a class="${active==="account"?"active":""}" href="account.html"><span class="ico">👤</span><span>حسابي</span></a></nav>`}
-function toggleMenu(){const menu=document.getElementById("mobileMenu");if(menu)menu.classList.toggle("show")}
-function footer(){return `<footer class="footer"><div class="container footer-grid"><div><h3>DevPlay Studio</h3><p class="muted">متجر شحن ألعاب، بطاقات، رصيد، وخدمات رقمية.</p></div><div><h3>الدفع</h3><p>من رصيد المحفظة داخل الموقع</p><p class="muted">لإضافة رصيد: Vodafone Cash</p><h3 class="num">010 359 66569</h3></div><div><h3>روابط</h3><p><a href="games.html">المتجر</a></p><p><a href="wallet.html">إضافة رصيد</a></p><p><a href="track.html">تتبع الطلب</a></p></div></div></footer>`}
-function categoryLabel(category){if(category==="games")return"ألعاب";if(category==="cards")return"بطاقات";if(category==="mobile")return"رصيد";if(category==="fakka")return"كروت فكة";return category||"منتجات"}
-function productCard(p,index){return `<div class="card glass product-card"><img src="${p.img||"logo.png"}" onerror="this.src='logo.png'"><div>${p.offer_label?`<span class="badge">${p.offer_label}</span>`:""} ${p.popular?`<span class="badge">الأكثر طلبًا</span>`:""}</div><h3>${p.game||"-"}</h3><p class="muted">${p.name||"-"}</p><div class="price">${p.price} جنيه</div><button class="btn" onclick="openAddModal(${index})">+ أضف للسلة</button></div>`}
-function openAddModal(index){selectedProduct=PRODUCTS[index];const modalInfo=document.getElementById("modalInfo"),playerInput=document.getElementById("playerInput"),modal=document.getElementById("modal");if(!modalInfo||!playerInput||!modal)return;modalInfo.innerHTML=`<h3>${selectedProduct.game}</h3><p>${selectedProduct.name}</p><p class="muted">المطلوب: ${selectedProduct.need||"بيانات الطلب"}</p>`;playerInput.placeholder=selectedProduct.need||"اكتب البيانات";playerInput.value="";modal.style.display="flex"}
-function closeModal(){const modal=document.getElementById("modal");if(modal)modal.style.display="none"}
-async function confirmAdd(){const playerInput=document.getElementById("playerInput");if(!playerInput||!selectedProduct)return;const value=playerInput.value.trim();if(!value)return toast("اكتبي البيانات المطلوبة");const c=cart();c.push({product_id:selectedProduct.id||null,category:selectedProduct.category||"",game:selectedProduct.game,name:selectedProduct.name,price:Number(selectedProduct.price),playerId:value,need:selectedProduct.need||""});setCart(c);const user=await currentUser();if(user){await client.from("saved_ids").insert([{user_id:user.id,game:selectedProduct.game,label:selectedProduct.need||"بيانات",value}])}closeModal();toast("تمت الإضافة للسلة ✅")}
-function statusText(status){if(status==="shipped")return"تم الشحن";if(status==="rejected")return"مرفوض";if(status==="paid")return"تم الدفع";if(status==="processing")return"جاري التنفيذ";return"قيد المراجعة"}
-function statusClass(status){if(status==="shipped")return"shipped";if(status==="rejected")return"rejected";return"pending"}
-function orderCode(){return"DP"+Math.floor(100000+Math.random()*899999)}
-function floatingTools(){if(document.getElementById("floatTools"))return;const box=document.createElement("div");box.id="floatTools";box.className="float-stack";box.innerHTML=`<button class="float-chat" onclick="toggleAiChat()">🤖 مساعدة</button><button class="float-whatsapp" onclick="window.open('https://wa.me/201036797528?text=السلام عليكم، محتاج خدمة العملاء','_blank')">واتساب</button><button class="float-cart" onclick="location.href='cart.html'">🛒 السلة <span data-cart-count>0</span></button>`;document.body.appendChild(box)}
-function smartSupportBot(){if(document.getElementById("aiSupportWidget"))return;const phone="201036797528";const options=[{q:"طريقة الطلب",a:"اختاري المنتج من المتجر، اكتبي ID اللعبة أو رقم الموبايل حسب الخدمة، ضيفيه للسلة، وبعدها اكملي الدفع من رصيد المحفظة."},{q:"طريقة إضافة رصيد",a:"ادخلي محفظتي، حوّلي على فودافون كاش، اكتبي الرقم اللي حولتي منه والمبلغ، وارفعي صورة التحويل. بعد المراجعة الرصيد بيتضاف لحسابك."},{q:"الرصيد مضافش بعد التحويل",a:"لو حولتي ورفعتي صورة التحويل ولسه الرصيد مضافش، ابعتي الرقم اللي حولتي منه والمبلغ ورقم العملية.",whatsapp:"السلام عليكم، حولت رصيد للمحفظة ولسه مضافش. الرقم اللي حولت منه: ، المبلغ: ، رقم العملية: "},{q:"الطلب اتأخر",a:"افتحي صفحة تتبع الطلب أو حسابي وشوفي الحالة. لو محتاجة متابعة مباشرة ابعتي رقم الطلب.",whatsapp:"السلام عليكم، طلبي اتأخر. رقم الطلب: "},{q:"كتبت ID أو رقم غلط",a:"تواصلي فورًا قبل تنفيذ الطلب. بعد التنفيذ قد لا يمكن الإلغاء حسب نوع الخدمة.",whatsapp:"السلام عليكم، كتبت بيانات غلط في الطلب. رقم الطلب: ، البيانات الصح: "},{q:"التحدث مع خدمة العملاء",a:"اضغطي زر واتساب وسيتم فتح محادثة مباشرة.",whatsapp:"السلام عليكم، محتاج خدمة العملاء."}];const box=document.createElement("div");box.id="aiSupportWidget";box.innerHTML=`<div class="ai-chat-box" id="aiChatBox"><div class="ai-chat-head"><b>🤖 مساعد DevPlay</b><button class="ai-close" onclick="toggleAiChat()">×</button></div><div class="ai-chat-body" id="aiChatBody"><div class="ai-msg ai-bot">أهلاً بيك 👋<br>اختاري السؤال أو المشكلة، وهقولك الحل بسرعة.</div>${options.map((item,index)=>`<button class="ai-option" onclick="aiAnswer(${index})">${item.q}</button>`).join("")}</div></div>`;document.body.appendChild(box);window.aiSupportOptions=options;window.aiSupportPhone=phone}
-function toggleAiChat(){const chat=document.getElementById("aiChatBox");if(chat)chat.classList.toggle("show")}
-function aiAnswer(index){const item=window.aiSupportOptions[index];const body=document.getElementById("aiChatBody");if(!body||!item)return;body.innerHTML+=`<div class="ai-msg ai-user">${item.q}</div><div class="ai-msg ai-bot">${item.a}</div>`;if(item.whatsapp){const text=encodeURIComponent(item.whatsapp);body.innerHTML+=`<a class="ai-whatsapp" target="_blank" href="https://wa.me/${window.aiSupportPhone}?text=${text}">فتح واتساب خدمة العملاء</a>`}body.scrollTop=body.scrollHeight}
-document.addEventListener("DOMContentLoaded",()=>{updateCartCount();updateWalletBalance();floatingTools();smartSupportBot();if(!document.querySelector(".bottom-nav")){document.body.insertAdjacentHTML("beforeend",bottomNav(""))}})
+
+function safe(v, d = "") {
+  return v === undefined || v === null ? d : v;
+}
+
+async function loadProductsFromDB() {
+  try {
+    const { data, error } = await client
+      .from("products")
+      .select("*")
+      .eq("active", true)
+      .order("category", { ascending: true })
+      .order("game", { ascending: true })
+      .order("price", { ascending: true });
+
+    PRODUCTS = (!error && data && data.length) ? data : FALLBACK_PRODUCTS;
+  } catch (e) {
+    PRODUCTS = FALLBACK_PRODUCTS;
+  }
+
+  return PRODUCTS;
+}
+
+function cart() {
+  return JSON.parse(localStorage.getItem("cart") || "[]");
+}
+
+function setCart(c) {
+  localStorage.setItem("cart", JSON.stringify(c));
+  updateCartCount();
+}
+
+function updateCartCount() {
+  document.querySelectorAll("[data-cart-count]").forEach(el => {
+    el.textContent = cart().length;
+  });
+}
+
+function toast(msg) {
+  const t = document.getElementById("toast");
+  if (!t) return alert(msg);
+  t.textContent = msg;
+  t.style.display = "block";
+  setTimeout(() => t.style.display = "none", 2500);
+}
+
+async function currentUser() {
+  const { data: { user } } = await client.auth.getUser();
+  return user;
+}
+
+async function updateWalletBalance() {
+  const holders = document.querySelectorAll("[data-wallet-balance]");
+  if (!holders.length) return;
+
+  try {
+    const user = await currentUser();
+
+    if (!user) {
+      holders.forEach(el => el.textContent = "0");
+      return;
+    }
+
+    let { data: wallet } = await client
+      .from("wallets")
+      .select("*")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (!wallet) {
+      await client.from("wallets").insert([{ user_id: user.id, balance: 0 }]);
+      wallet = { balance: 0 };
+    }
+
+    holders.forEach(el => el.textContent = Number(wallet.balance || 0));
+  } catch (e) {
+    holders.forEach(el => el.textContent = "0");
+  }
+}
+
+function header(active = "") {
+  return `
+    <header class="main-header">
+      <div class="container nav-wrap">
+        <a class="brand" href="index.html">
+          <img src="logo.png" onerror="this.style.display='none'">
+          <span>DevPlay</span>
+        </a>
+
+        <button class="menu-btn" onclick="toggleMenu()">☰</button>
+
+        <nav id="mobileMenu" class="nav-links">
+          <a class="${active === "home" ? "active" : ""}" href="index.html">الرئيسية</a>
+          <a class="${active === "games" ? "active" : ""}" href="games.html">المتجر</a>
+          <a class="${active === "offers" ? "active" : ""}" href="offers.html">العروض</a>
+          <a class="${active === "track" ? "active" : ""}" href="track.html">تتبع الطلب</a>
+          <a class="${active === "account" ? "active" : ""}" href="account.html">حسابي</a>
+          <a class="wallet-link ${active === "wallet" ? "active" : ""}" href="wallet.html">💰 رصيدي: <span data-wallet-balance>0</span> ج</a>
+          <a class="cart-link" href="cart.html">🛒 السلة <span data-cart-count>0</span></a>
+        </nav>
+      </div>
+    </header>
+  `;
+}
+
+function footer() {
+  return `
+    <footer class="footer">
+      <div class="container footer-grid">
+        <div>
+          <h3>DevPlay Studio</h3>
+          <p class="muted">متجر شحن ألعاب، رصيد، بطاقات، وخدمات رقمية.</p>
+        </div>
+        <div>
+          <h3>الدفع</h3>
+          <p>من رصيد المحفظة داخل الموقع</p>
+          <b>010 359 66569</b>
+        </div>
+        <div>
+          <h3>روابط</h3>
+          <p><a href="games.html">المتجر</a></p>
+          <p><a href="wallet.html">إضافة رصيد</a></p>
+          <p><a href="track.html">تتبع الطلب</a></p>
+        </div>
+      </div>
+    </footer>
+  `;
+}
+
+function bottomNav(active = "") {
+  return `
+    <nav class="bottom-nav">
+      <a class="${active === "home" ? "active" : ""}" href="index.html"><span>🏠</span><small>الرئيسية</small></a>
+      <a class="${active === "games" ? "active" : ""}" href="games.html"><span>🎮</span><small>المتجر</small></a>
+      <a class="${active === "wallet" ? "active" : ""}" href="wallet.html"><span>💰</span><small>الرصيد</small></a>
+      <a class="${active === "track" ? "active" : ""}" href="track.html"><span>📦</span><small>تتبع</small></a>
+      <a class="${active === "account" ? "active" : ""}" href="account.html"><span>👤</span><small>حسابي</small></a>
+    </nav>
+  `;
+}
+
+function toggleMenu() {
+  const menu = document.getElementById("mobileMenu");
+  if (menu) menu.classList.toggle("show");
+}
+
+function categoryLabel(category) {
+  const map = {
+    games: "ألعاب",
+    mobile: "رصيد",
+    fakka: "كروت فكة",
+    cards: "بطاقات"
+  };
+  return map[category] || category || "منتجات";
+}
+
+function productCard(p, index) {
+  return `
+    <div class="product-card glass">
+      <div class="img-box">
+        <img src="${safe(p.img, "logo.png")}" onerror="this.src='logo.png'">
+      </div>
+
+      <div class="product-tags">
+        ${p.popular ? `<span>الأكثر طلبًا</span>` : ""}
+        ${p.offer_label ? `<span>${p.offer_label}</span>` : ""}
+      </div>
+
+      <h3>${safe(p.game, "-")}</h3>
+      <p>${safe(p.name, "-")}</p>
+
+      <div class="price">${safe(p.price, 0)} جنيه</div>
+
+      <button class="btn" onclick="openAddModal(${index})">
+        إضافة للسلة
+      </button>
+    </div>
+  `;
+}
+
+function openAddModal(index) {
+  selectedProduct = PRODUCTS[index];
+
+  const modal = document.getElementById("modal");
+  const modalInfo = document.getElementById("modalInfo");
+  const playerInput = document.getElementById("playerInput");
+
+  if (!modal || !modalInfo || !playerInput) return;
+
+  modalInfo.innerHTML = `
+    <h2>${selectedProduct.game}</h2>
+    <p>${selectedProduct.name}</p>
+    <p class="muted">المطلوب: ${selectedProduct.need || "بيانات الطلب"}</p>
+  `;
+
+  playerInput.value = "";
+  playerInput.placeholder = selectedProduct.need || "اكتبي البيانات";
+  modal.style.display = "flex";
+}
+
+function closeModal() {
+  const modal = document.getElementById("modal");
+  if (modal) modal.style.display = "none";
+}
+
+async function confirmAdd() {
+  const input = document.getElementById("playerInput");
+  if (!input || !selectedProduct) return;
+
+  const value = input.value.trim();
+  if (!value) return toast("اكتبي البيانات المطلوبة");
+
+  const c = cart();
+
+  c.push({
+    product_id: selectedProduct.id || null,
+    category: selectedProduct.category || "",
+    game: selectedProduct.game,
+    name: selectedProduct.name,
+    price: Number(selectedProduct.price || 0),
+    playerId: value,
+    need: selectedProduct.need || ""
+  });
+
+  setCart(c);
+
+  try {
+    const user = await currentUser();
+    if (user) {
+      await client.from("saved_ids").insert([{
+        user_id: user.id,
+        game: selectedProduct.game,
+        label: selectedProduct.need || "بيانات",
+        value
+      }]);
+    }
+  } catch (e) {}
+
+  closeModal();
+  toast("تمت الإضافة للسلة ✅");
+}
+
+function statusText(status) {
+  if (status === "shipped") return "تم الشحن";
+  if (status === "rejected") return "مرفوض";
+  if (status === "processing") return "جاري التنفيذ";
+  if (status === "paid") return "تم الدفع";
+  return "قيد المراجعة";
+}
+
+function statusClass(status) {
+  if (status === "shipped") return "shipped";
+  if (status === "rejected") return "rejected";
+  return "pending";
+}
+
+function orderCode() {
+  return "DP" + Math.floor(100000 + Math.random() * 899999);
+}
+
+function floatingTools() {
+  if (document.getElementById("floatingTools")) return;
+
+  const box = document.createElement("div");
+  box.id = "floatingTools";
+  box.className = "floating-tools";
+
+  box.innerHTML = `
+    <button class="float-chat" onclick="toggleAiChat()">💬 مساعدة</button>
+    <button class="float-whatsapp" onclick="window.open('https://wa.me/201036797528?text=السلام عليكم، محتاج خدمة العملاء', '_blank')">واتساب</button>
+    <button class="float-cart" onclick="location.href='cart.html'">🛒 السلة <span data-cart-count>0</span></button>
+  `;
+
+  document.body.appendChild(box);
+}
+
+function smartSupportBot() {
+  if (document.getElementById("aiSupportWidget")) return;
+
+  const options = [
+    {
+      q: "طريقة الطلب",
+      a: "اختاري المنتج من المتجر، اكتبي ID أو رقم الموبايل، ضيفيه للسلة، وبعدها ادفعي من رصيد المحفظة."
+    },
+    {
+      q: "إضافة رصيد",
+      a: "ادخلي محفظتي، حوّلي فودافون كاش، ارفعي صورة التحويل، وبعد المراجعة الرصيد يتضاف لحسابك."
+    },
+    {
+      q: "الرصيد مضافش",
+      a: "لو حولتي ولسه الرصيد مضافش، ابعتي الرقم اللي حولتي منه والمبلغ ورقم العملية.",
+      whatsapp: "السلام عليكم، حولت رصيد للمحفظة ولسه مضافش. الرقم: ، المبلغ: ، رقم العملية: "
+    },
+    {
+      q: "الطلب اتأخر",
+      a: "افتحي تتبع الطلب أو حسابي. لو محتاجة متابعة مباشرة ابعتي رقم الطلب.",
+      whatsapp: "السلام عليكم، طلبي اتأخر. رقم الطلب: "
+    },
+    {
+      q: "التحدث مع خدمة العملاء",
+      a: "اضغطي فتح واتساب للتواصل المباشر.",
+      whatsapp: "السلام عليكم، محتاج خدمة العملاء."
+    }
+  ];
+
+  const widget = document.createElement("div");
+  widget.id = "aiSupportWidget";
+
+  widget.innerHTML = `
+    <div class="ai-chat" id="aiChatBox">
+      <div class="ai-head">
+        <b>مساعد DevPlay</b>
+        <button onclick="toggleAiChat()">×</button>
+      </div>
+
+      <div class="ai-body" id="aiChatBody">
+        <div class="ai-msg bot">
+          أهلاً بيك 👋 اختاري سؤالك وهقولك الحل بسرعة.
+        </div>
+
+        ${options.map((item, index) => `
+          <button class="ai-option" onclick="aiAnswer(${index})">
+            ${item.q}
+          </button>
+        `).join("")}
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(widget);
+  window.aiSupportOptions = options;
+}
+
+function toggleAiChat() {
+  const box = document.getElementById("aiChatBox");
+  if (box) box.classList.toggle("show");
+}
+
+function aiAnswer(index) {
+  const item = window.aiSupportOptions[index];
+  const body = document.getElementById("aiChatBody");
+  if (!item || !body) return;
+
+  body.innerHTML += `
+    <div class="ai-msg user">${item.q}</div>
+    <div class="ai-msg bot">${item.a}</div>
+  `;
+
+  if (item.whatsapp) {
+    body.innerHTML += `
+      <a class="ai-wa" target="_blank" href="https://wa.me/201036797528?text=${encodeURIComponent(item.whatsapp)}">
+        فتح واتساب خدمة العملاء
+      </a>
+    `;
+  }
+
+  body.scrollTop = body.scrollHeight;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  updateCartCount();
+  updateWalletBalance();
+  floatingTools();
+  smartSupportBot();
+
+  if (!document.querySelector(".bottom-nav")) {
+    const active =
+      location.pathname.includes("games") ? "games" :
+      location.pathname.includes("wallet") ? "wallet" :
+      location.pathname.includes("track") ? "track" :
+      location.pathname.includes("account") ? "account" :
+      "home";
+
+    document.body.insertAdjacentHTML("beforeend", bottomNav(active));
+  }
+});
