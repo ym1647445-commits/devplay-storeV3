@@ -153,11 +153,54 @@ function render(groups) {
 }
 
 async function updateStatus(code, newStatus) {
-  const { data, error } = await client.from("orders").update({ status: newStatus }).eq("order_code", code).select();
+
+  const { data, error } = await client
+    .from("orders")
+    .update({ status: newStatus })
+    .eq("order_code", code)
+    .select();
+
   if (error) return alert(error.message);
-  if (!data || !data.length) return alert("لم يتم تحديث أي طلب");
-  toast("تم تحديث الحالة ✅");
-  all = all.map(order => order.order_code === code ? { ...order, status: newStatus } : order);
+
+  if (!data || !data.length)
+    return alert("لم يتم تحديث أي طلب");
+
+  const order = data[0];
+
+  // إرسال الإيميل للعميل
+  try {
+
+    await fetch(
+      "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-email",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        body: JSON.stringify({
+          email: order.email,
+          name: order.customer_name || "عميل DevPlay",
+          status: newStatus,
+          orderId: order.order_code,
+          game: order.game,
+          amount: order.price + " جنيه"
+        })
+      }
+    );
+
+  } catch (e) {
+    console.log("Email Error", e);
+  }
+
+  toast("تم تحديث الحالة وإرسال الإيميل ✅");
+
+  all = all.map(order =>
+    order.order_code === code
+      ? { ...order, status: newStatus }
+      : order
+  );
+
   stats();
   render(group(all));
 }
