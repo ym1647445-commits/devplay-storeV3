@@ -58,7 +58,6 @@ let wallet = null;
 let orderTotal = 0;
 
 async function loadWalletForCheckout() {
-
   loggedUser = await currentUser();
 
   if (!loggedUser) {
@@ -67,25 +66,44 @@ async function loadWalletForCheckout() {
     return;
   }
 
-  const { data } = await client
+  let foundWallet = null;
+
+  let res1 = await client
     .from("wallets")
     .select("*")
     .eq("user_id", loggedUser.id)
     .maybeSingle();
 
-  if (!data) {
-    await client
+  if (res1.data) {
+    foundWallet = res1.data;
+  }
+
+  if (!foundWallet) {
+    let res2 = await client
       .from("wallets")
-      .insert([{ user_id: loggedUser.id, balance: 0 }]);
+      .select("*")
+      .eq("email", loggedUser.email)
+      .maybeSingle();
+
+    if (res2.data) {
+      foundWallet = res2.data;
+    }
+  }
+
+  if (!foundWallet) {
+    await client.from("wallets").insert([{
+      user_id: loggedUser.id,
+      email: loggedUser.email,
+      balance: 0
+    }]);
 
     wallet = { balance: 0 };
   } else {
-    wallet = data;
+    wallet = foundWallet;
   }
 
   walletBalance.textContent = Number(wallet.balance || 0);
 }
-
 function renderSummary() {
 
   const c = cart();
