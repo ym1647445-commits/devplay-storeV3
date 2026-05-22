@@ -31,3 +31,20 @@ function smartSupportBot(){if(document.getElementById("aiSupportWidget"))return;
 function toggleAiChat(){const box=document.getElementById("aiChatBox");if(box)box.classList.toggle("show")}
 function aiAnswer(index){const item=window.aiSupportOptions[index];const body=document.getElementById("aiChatBody");if(!item||!body)return;body.innerHTML+=`<div class="ai-msg user">${item.q}</div><div class="ai-msg bot">${item.a}</div>`;if(item.whatsapp){body.innerHTML+=`<a class="ai-wa" target="_blank" href="https://wa.me/201036797528?text=${encodeURIComponent(item.whatsapp)}">فتح واتساب خدمة العملاء</a>`}body.scrollTop=body.scrollHeight}
 document.addEventListener("DOMContentLoaded",()=>{applySavedTheme();updateCartCount();updateWalletBalance();floatingTools();smartSupportBot();if(!document.querySelector(".bottom-nav")){const active=location.pathname.includes("games")?"games":location.pathname.includes("wallet")?"wallet":location.pathname.includes("track")?"track":location.pathname.includes("account")?"account":"home";document.body.insertAdjacentHTML("beforeend",bottomNav(active))}})
+const slides = document.querySelectorAll(".slide");
+
+let currentSlide = 0;
+
+setInterval(() => {
+
+    slides[currentSlide].classList.remove("active");
+
+    currentSlide++;
+
+    if(currentSlide >= slides.length){
+        currentSlide = 0;
+    }
+
+    slides[currentSlide].classList.add("active");
+
+}, 3500);
