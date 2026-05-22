@@ -208,18 +208,46 @@ ${orderTotal} جنيه
 ${notes.value || "لا يوجد"}`;
 
   try {
-    await fetch(
-      "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          type: "order",
-          message: msg
-        })
-      }
+
+  const tg = await fetch(
+    "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram",
+    {
+
+      method: "POST",
+
+      headers: {
+        "Content-Type": "application/json"
+      },
+
+      body: JSON.stringify({
+        type: "order",
+        message: msg
+      })
+
+    }
+  );
+
+  const tgData = await tg.json();
+
+  console.log("Telegram response:", tgData);
+
+  if (!tgData.ok) {
+
+    alert(
+      "Telegram Error: " +
+      JSON.stringify(tgData)
+    );
+
+  }
+
+} catch (err) {
+
+  alert(
+    "Telegram Fetch Error: " +
+    err.message
+  );
+
+}
     );
   } catch (err) {
     console.log("Telegram Error:", err);
