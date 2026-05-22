@@ -33,18 +33,32 @@ function aiAnswer(index){const item=window.aiSupportOptions[index];const body=do
 document.addEventListener("DOMContentLoaded",()=>{applySavedTheme();updateCartCount();updateWalletBalance();floatingTools();smartSupportBot();if(!document.querySelector(".bottom-nav")){const active=location.pathname.includes("games")?"games":location.pathname.includes("wallet")?"wallet":location.pathname.includes("track")?"track":location.pathname.includes("account")?"account":"home";document.body.insertAdjacentHTML("beforeend",bottomNav(active))}})
 const slides = document.querySelectorAll(".slide");
 
-let currentSlide = 0;
+let heroSlideIndex = 0;
+
+function showHeroSlide(index) {
+  const slides = document.querySelectorAll(".hero-img-slide");
+  const dots = document.querySelectorAll(".hero-img-dots button");
+
+  if (!slides.length) return;
+
+  slides.forEach(slide => slide.classList.remove("active"));
+  dots.forEach(dot => dot.classList.remove("active"));
+
+  heroSlideIndex = index;
+
+  slides[heroSlideIndex].classList.add("active");
+  dots[heroSlideIndex].classList.add("active");
+}
 
 setInterval(() => {
+  const slides = document.querySelectorAll(".hero-img-slide");
+  if (!slides.length) return;
 
-    slides[currentSlide].classList.remove("active");
+  heroSlideIndex++;
 
-    currentSlide++;
+  if (heroSlideIndex >= slides.length) {
+    heroSlideIndex = 0;
+  }
 
-    if(currentSlide >= slides.length){
-        currentSlide = 0;
-    }
-
-    slides[currentSlide].classList.add("active");
-
-}, 3500);
+  showHeroSlide(heroSlideIndex);
+}, 4000);
