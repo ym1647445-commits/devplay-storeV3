@@ -286,7 +286,73 @@ ${notes.value || "لا يوجد"}`;
     }]);
 
   localStorage.removeItem("cart");
+await fetch(
+"https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-email",
+{
 
+  method:"POST",
+
+  headers:{
+    "Content-Type":"application/json"
+  },
+
+  body:JSON.stringify({
+
+    to: loggedUser.email,
+
+    subject:
+      `تم استلام طلبك ${code} | DevPlay`,
+
+    html: `
+
+    <div style="
+      font-family:sans-serif;
+      background:#0f172a;
+      padding:30px;
+      color:white;
+      border-radius:20px;
+    ">
+
+      <h1 style="
+        color:#38bdf8;
+      ">
+        🎮 DevPlay
+      </h1>
+
+      <h2>
+        تم استلام طلبك بنجاح ✅
+      </h2>
+
+      <p>
+        رقم الطلب:
+        <b>${code}</b>
+      </p>
+
+      <p>
+        الإجمالي:
+        <b>${orderTotal} جنيه</b>
+      </p>
+
+      <p>
+        حالة الطلب:
+        <b style="color:#facc15">
+          قيد المراجعة
+        </b>
+      </p>
+
+      <hr>
+
+      <p>
+        شكرًا لاستخدامك DevPlay 💜
+      </p>
+
+    </div>
+
+    `
+
+  })
+
+});
   toast("تم إرسال الطلب والدفع من الرصيد ✅");
 
   setTimeout(() => {
