@@ -10,11 +10,13 @@
   <script src="config.js"></script>
   <script src="app.js"></script>
 </head>
+
 <body>
 <div id="top"></div>
 
 <section class="section container">
   <div class="layout-2">
+
     <div class="glass card">
       <h2>إتمام الطلب ⚡</h2>
       <p class="muted">الدفع حاليًا من رصيد الموقع فقط. لو رصيدك غير كافي، اشحني المحفظة أولًا.</p>
@@ -40,6 +42,7 @@
       <div id="summary"></div>
       <div class="total" id="finalTotal">0 جنيه</div>
     </aside>
+
   </div>
 </section>
 
@@ -55,6 +58,7 @@ let wallet = null;
 let orderTotal = 0;
 
 async function loadWalletForCheckout() {
+
   loggedUser = await currentUser();
 
   if (!loggedUser) {
@@ -63,10 +67,17 @@ async function loadWalletForCheckout() {
     return;
   }
 
-  const { data } = await client.from("wallets").select("*").eq("user_id", loggedUser.id).maybeSingle();
+  const { data } = await client
+    .from("wallets")
+    .select("*")
+    .eq("user_id", loggedUser.id)
+    .maybeSingle();
 
   if (!data) {
-    await client.from("wallets").insert([{ user_id: loggedUser.id, balance: 0 }]);
+    await client
+      .from("wallets")
+      .insert([{ user_id: loggedUser.id, balance: 0 }]);
+
     wallet = { balance: 0 };
   } else {
     wallet = data;
@@ -76,19 +87,31 @@ async function loadWalletForCheckout() {
 }
 
 function renderSummary() {
+
   const c = cart();
+
   let total = 0;
 
   summary.innerHTML =
     c.length
       ? c.map(item => {
+
         total += Number(item.price);
+
         return `
           <div class="item-row">
-            <div><b>${item.game}</b><p class="muted">${item.name}<br>${item.playerId}</p></div>
+            <div>
+              <b>${item.game}</b>
+              <p class="muted">
+                ${item.name}<br>
+                ${item.playerId}
+              </p>
+            </div>
+
             <b>${item.price} جنيه</b>
           </div>
         `;
+
       }).join("")
       : "<p class='muted'>السلة فارغة.</p>";
 
@@ -97,11 +120,17 @@ function renderSummary() {
 }
 
 async function submitOrder() {
+
   const c = cart();
 
-  if (!loggedUser) return toast("سجلي دخول الأول");
-  if (!c.length) return toast("السلة فارغة");
-  if (!customerName.value || !phone.value) return toast("اكتبي الاسم ورقم الواتساب");
+  if (!loggedUser)
+    return toast("سجلي دخول الأول");
+
+  if (!c.length)
+    return toast("السلة فارغة");
+
+  if (!customerName.value || !phone.value)
+    return toast("اكتبي الاسم ورقم الواتساب");
 
   const balance = Number(wallet.balance || 0);
 
@@ -114,92 +143,132 @@ async function submitOrder() {
   const code = orderCode();
 
   const rows = c.map(item => ({
+
     user_id: loggedUser.id,
     product_id: item.product_id || null,
     category: item.category || null,
+
     customer_name: customerName.value,
     phone: phone.value,
     customer_phone: phone.value,
+
     game: item.game,
     package: item.name,
     player_id: item.playerId,
     price: Number(item.price),
+
     status: "pending",
     order_code: code,
     notes: notes.value,
+
     payment_method: "wallet",
     wallet_paid: true
+
   }));
 
-  const { error } = await client.from("orders").insert(rows);
-  if (error) return alert(error.message);
-const itemsText = c.map(item =>
+  const { error } = await client
+    .from("orders")
+    .insert(rows);
+
+  if (error)
+    return alert(error.message);
+
+  const itemsText = c.map(item =>
 `🎮 ${item.game}
 📦 ${item.name}
 🆔 ${item.playerId}
 💰 ${item.price} جنيه`
-).join("\\n\\n");
+  ).join("\n\n");
 
-const msg =
+  const msg =
 `🛒 طلب جديد مدفوع من الرصيد
 
-🔢 رقم الطلب: ${code}
+🔢 رقم الطلب:
+${code}
 
-👤 العميل: ${customerName.value}
-📱 واتساب: ${phone.value}
-📧 الحساب: ${loggedUser.email}
+👤 العميل:
+${customerName.value}
+
+📱 واتساب:
+${phone.value}
+
+📧 الحساب:
+${loggedUser.email}
 
 🎮 الطلبات:
 ${itemsText}
 
-💰 الإجمالي: ${orderTotal} جنيه
-💳 طريقة الدفع: رصيد الموقع
+💰 الإجمالي:
+${orderTotal} جنيه
+
+💳 طريقة الدفع:
+رصيد الموقع
 
 📝 ملاحظات:
 ${notes.value || "لا يوجد"}`;
 
-fetch("https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    type: "order",
-    message: msg
-  })
-});
+  try {
+    await fetch(
+      "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type: "order",
+          message: msg
+        })
+      }
+    );
+  } catch (err) {
+    console.log("Telegram Error:", err);
+  }
+
   const newBalance = balance - orderTotal;
 
   const { error: walletError } = await client
     .from("wallets")
-    .update({ balance: newBalance, updated_at: new Date().toISOString() })
+    .update({
+      balance: newBalance,
+      updated_at: new Date().toISOString()
+    })
     .eq("user_id", loggedUser.id);
 
-  if (walletError) return alert(walletError.message);
+  if (walletError)
+    return alert(walletError.message);
 
-  await client.from("wallet_transactions").insert([{
-    user_id: loggedUser.id,
-    type: "debit",
-    amount: orderTotal,
-    note: `دفع طلب ${code}`,
-    ref_id: null
-  }]);
+  await client
+    .from("wallet_transactions")
+    .insert([{
+      user_id: loggedUser.id,
+      type: "debit",
+      amount: orderTotal,
+      note: `دفع طلب ${code}`,
+      ref_id: code
+    }]);
 
-  await client.from("notifications").insert([{
-    user_id: loggedUser.id,
-    title: "تم استلام طلبك",
-    message: `تم خصم ${orderTotal} جنيه من رصيدك. طلبك ${code} قيد المراجعة.`,
-    type: "order"
-  }]);
+  await client
+    .from("notifications")
+    .insert([{
+      user_id: loggedUser.id,
+      title: "تم استلام طلبك",
+      message: `تم خصم ${orderTotal} جنيه من رصيدك. طلبك ${code} قيد المراجعة.`,
+      type: "order"
+    }]);
 
   localStorage.removeItem("cart");
+
   toast("تم إرسال الطلب والدفع من الرصيد ✅");
 
-  setTimeout(() => location.href = "account.html", 900);
+  setTimeout(() => {
+    location.href = "account.html";
+  }, 1200);
 }
 
 renderSummary();
 loadWalletForCheckout();
 </script>
+
 </body>
 </html>
