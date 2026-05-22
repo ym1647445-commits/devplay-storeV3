@@ -79,3 +79,28 @@ input,select,textarea{width:100%;padding:14px;border-radius:17px;background:rgba
     border-radius:18px;
   }
 }
+.cash-number-box{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+  margin-top:10px;
+}
+
+#vodafoneCash{
+  direction:ltr;
+  unicode-bidi:bidi-override;
+  font-size:24px;
+  font-weight:700;
+  letter-spacing:2px;
+}
+
+.copy-btn{
+  border:none;
+  padding:10px 18px;
+  border-radius:12px;
+  background:linear-gradient(135deg,#7c3aed,#38bdf8);
+  color:#fff;
+  cursor:pointer;
+  font-weight:700;
+}
