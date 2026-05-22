@@ -1,10 +1,92 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>DevPlay Studio</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script></head>
-<body><div id="top"></div>
-<section class="section container"><div class="hero-pro"><div class="hero-main"><span class="badge">DevPlay Studio</span><h1>شحن ألعاب ورصيد بخطوات بسيطة</h1><p>منصة سهلة للموبايل والكمبيوتر. اشحني محفظتك مرة، واطلبي أي خدمة من المتجر، وتابعي كل طلب من حسابك.</p><div class="hero-actions"><a class="btn" href="games.html">ابدئي التسوق</a><a class="btn dark" href="wallet.html">إضافة رصيد</a></div></div><div class="hero-side"><div class="mini-stat glass"><b>🎮</b><h3>ألعاب</h3><p class="muted">PUBG, Free Fire, COD, FC Mobile والمزيد.</p></div><div class="mini-stat glass"><b>💰</b><h3>محفظة</h3><p class="muted">الدفع من رصيد الموقع فقط لسهولة المتابعة.</p></div></div></div></section>
-<section class="section container"><div class="section-head"><h2>الأقسام</h2><a class="btn dark" href="games.html">عرض الكل</a></div><div class="grid"><a class="card glass" href="games.html?cat=games"><h3>🎮 ألعاب</h3><p class="muted">شحن ID الألعاب.</p></a><a class="card glass" href="games.html?cat=mobile"><h3>📱 رصيد</h3><p class="muted">فودافون، أورنج، اتصالات.</p></a><a class="card glass" href="games.html?cat=fakka"><h3>⚡ كروت فكة</h3><p class="muted">فروع منظمة لكل شبكة.</p></a><a class="card glass" href="games.html?cat=cards"><h3>💳 بطاقات</h3><p class="muted">بطاقات وخدمات رقمية.</p></a></div></section>
-<section class="section container"><div class="section-head"><h2>منتجات مميزة</h2><a class="btn dark" href="games.html">المتجر</a></div><div class="grid" id="popularProducts"></div></section>
-<div id="foot"></div><div id="toast" class="toast"></div>
-<script>document.getElementById("top").innerHTML=header("home");document.getElementById("foot").innerHTML=footer();async function initHome(){await loadProductsFromDB();const popular=PRODUCTS.filter(p=>p.popular).slice(0,8);popularProducts.innerHTML=popular.length?popular.map(p=>productCard(p,PRODUCTS.indexOf(p))).join(""):"<p class='muted'>لا توجد منتجات مميزة حاليًا.</p>"}initHome();</script>
-</body></html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DevPlay Studio</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+<div id="top"></div>
+
+<section class="section container">
+  <div class="hero-pro">
+    <div class="hero-main">
+      <span class="badge">DevPlay Studio</span>
+      <h1>شحن ألعاب ورصيد بسهولة</h1>
+      <p>متجر بسيط وسريع للموبايل والكمبيوتر. اشحني محفظتك واطلبي أي خدمة من المتجر وتابعيها من حسابك.</p>
+      <div class="hero-actions">
+        <a class="btn" href="games.html">افتح المتجر</a>
+        <a class="btn dark" href="wallet.html">إضافة رصيد</a>
+      </div>
+    </div>
+
+    <div class="hero-side">
+      <div class="mini-stat glass">
+        <b>🎮</b>
+        <h3>ألعاب</h3>
+        <p class="muted">PUBG, Free Fire, COD, FC Mobile والمزيد.</p>
+      </div>
+      <div class="mini-stat glass">
+        <b>💰</b>
+        <h3>محفظة</h3>
+        <p class="muted">الدفع من رصيد الموقع فقط لسهولة المتابعة.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section container">
+  <div class="section-head">
+    <h2>الأقسام</h2>
+    <a class="btn dark" href="games.html">كل المنتجات</a>
+  </div>
+
+  <div class="grid">
+    <a class="card glass" href="games.html?cat=games"><h3>🎮 ألعاب</h3><p class="muted">شحن ID الألعاب.</p></a>
+    <a class="card glass" href="games.html?cat=mobile"><h3>📱 رصيد</h3><p class="muted">فودافون، أورنج، اتصالات.</p></a>
+    <a class="card glass" href="games.html?cat=fakka"><h3>⚡ كروت فكة</h3><p class="muted">فروع منظمة لكل شبكة.</p></a>
+    <a class="card glass" href="games.html?cat=cards"><h3>💳 بطاقات</h3><p class="muted">بطاقات وخدمات رقمية.</p></a>
+  </div>
+</section>
+
+<section class="section container">
+  <div class="section-head">
+    <h2>منتجات مميزة</h2>
+    <a class="btn dark" href="games.html">المتجر</a>
+  </div>
+  <div class="grid" id="popularProducts"></div>
+</section>
+
+<div class="modal" id="modal">
+  <div class="modal-box glass">
+    <button class="close" onclick="closeModal()">×</button>
+    <div id="modalInfo"></div>
+    <input id="playerInput">
+    <button class="btn" onclick="confirmAdd()">إضافة للسلة</button>
+  </div>
+</div>
+
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+document.getElementById("top").innerHTML = header("home");
+document.getElementById("foot").innerHTML = footer();
+
+async function initHome() {
+  await loadProductsFromDB();
+  const popular = PRODUCTS.filter(p => p.popular).slice(0, 8);
+  popularProducts.innerHTML = popular.length
+    ? popular.map(p => productCard(p, PRODUCTS.indexOf(p))).join("")
+    : "<p class='muted'>لا توجد منتجات مميزة حاليًا.</p>";
+}
+
+initHome();
+</script>
+</body>
+</html>
