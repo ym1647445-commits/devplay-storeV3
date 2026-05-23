@@ -167,30 +167,63 @@ async function updateStatus(code, newStatus) {
 
   const order = data[0];
 
-  // إرسال الإيميل للعميل
-  try {
+  let customerEmail =
+    order.email ||
+    order.customer_email ||
+    order.user_email ||
+    "";
 
-    await fetch(
-      "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-email",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
+  if (!customerEmail && order.user_id) {
+    const { data: profile } = await client
+      .from("wallets")
+      .select("email")
+      .eq("user_id", order.user_id)
+      .maybeSingle();
 
-        body: JSON.stringify({
-          email: order.email,
-          name: order.customer_name || "عميل DevPlay",
-          status: newStatus,
-          orderId: order.order_code,
-          game: order.game,
-          amount: order.price + " جنيه"
-        })
-      }
-    );
+    customerEmail = profile?.email || "";
+  }
 
-  } catch (e) {
-    console.log("Email Error", e);
+  const emailType =
+    newStatus === "shipped"
+      ? "order_shipped"
+      : newStatus === "rejected"
+        ? "order_rejected"
+        : "order_received";
+
+  const productText =
+    data.map(item =>
+      `${item.game || "-"} - ${item.package || "-"}`
+    ).join(" | ");
+
+  const totalAmount =
+    data.reduce((sum, item) => sum + Number(item.price || 0), 0);
+
+  if (customerEmail) {
+    try {
+      await fetch(
+        "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            to: customerEmail,
+            name: order.customer_name || "عميل DevPlay",
+            type: emailType,
+            orderCode: order.order_code,
+            product: productText,
+            playerId: order.player_id || order.phone || order.customer_phone || "-",
+            amount: totalAmount || order.price || 0,
+            trackUrl: "https://devplaystudio.com/track.html"
+          })
+        }
+      );
+    } catch (e) {
+      console.log("Email Error", e);
+    }
+  } else {
+    console.log("No customer email found for order", code);
   }
 
   toast("تم تحديث الحالة وإرسال الإيميل ✅");
