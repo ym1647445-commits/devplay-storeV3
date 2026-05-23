@@ -32,6 +32,10 @@
         دخول
       </button>
 
+      <button class="btn dark" onclick="signInWithGoogle()" type="button">
+        الدخول باستخدام Google
+      </button>
+
       <div style="margin-top:10px;text-align:center">
         <a href="forgot-password.html" class="muted">
           نسيت كلمة المرور؟
@@ -58,8 +62,21 @@
 
 <script>
 async function login() {
-  const { error } = await client.auth.signInWithPassword({
-    email: email.value,
+  const mail = email.value.trim().toLowerCase();
+
+  if (!mail || !password.value) {
+    return toast("اكتبي البريد وكلمة المرور");
+  }
+
+  const ban = await checkBannedEmail(mail);
+
+  if (ban.banned) {
+    return alert("هذا البريد محظور.
+السبب: " + ban.reason);
+  }
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email: mail,
     password: password.value
   });
 
@@ -67,6 +84,8 @@ async function login() {
     alert(error.message);
     return;
   }
+
+  await logLoginEvent(data.user, "password");
 
   location.href = "account.html";
 }
