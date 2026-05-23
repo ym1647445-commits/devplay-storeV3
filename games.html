@@ -1,646 +1,286 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-
 <head>
-
   <meta charset="UTF-8">
-
-  <meta name="viewport"
-    content="width=device-width, initial-scale=1.0">
-
-  <title>
-    الألعاب - DevPlay
-  </title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>الألعاب - DevPlay</title>
   <link rel="manifest" href="manifest.json">
-
   <link rel="stylesheet" href="style.css">
-
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <script src="config.js"></script>
-
   <script src="app.js"></script>
-
 </head>
-
 <body>
 
-  <div id="top"></div>
+<div id="top"></div>
 
-  <section class="section container">
+<section class="section container">
+  <div class="section-kicker">المتجر</div>
+  <h1 class="section-title">ابحث عن <span>خدمتك</span></h1>
 
-    <div class="section-kicker">
-      المتجر
-    </div>
-
-    <h1 class="section-title">
-      ابحث عن <span>خدمتك</span>
-    </h1>
-
-    <div class="store-toolbar">
-
-      <input
-        id="searchBox"
-        placeholder="ابحث عن لعبة أو خدمة..."
-        oninput="applyFilters()"
-      >
-
-      <div
-        class="filters"
-        id="categoryFilters"
-      ></div>
-
-      <div
-        class="filters"
-        id="gameFilters"
-      ></div>
-
-    </div>
-
-    <p
-      class="muted"
-      id="resultCount"
-    ></p>
-
-    <div
-      class="grid"
-      id="products"
-    ></div>
-
-  </section>
-
-  <div
-    class="modal"
-    id="modal"
-  >
-
-    <div class="modal-box glass">
-
-      <button
-        class="close"
-        onclick="closeModal()"
-      >
-        ×
-      </button>
-
-      <div id="modalInfo"></div>
-
-      <input id="playerInput">
-
-      <button
-        class="btn"
-        onclick="confirmAdd()"
-      >
-        إضافة للسلة
-      </button>
-
-    </div>
-
+  <div class="store-toolbar">
+    <input id="searchBox" placeholder="ابحث عن لعبة أو خدمة..." oninput="applyFilters()">
+    <div class="filters" id="categoryFilters"></div>
+    <div class="filters" id="gameFilters"></div>
   </div>
 
-  <div id="foot"></div>
+  <p class="muted" id="resultCount"></p>
+  <div class="grid" id="products"></div>
+</section>
 
-  <div
-    id="toast"
-    class="toast"
-  ></div>
+<div class="modal" id="modal">
+  <div class="modal-box glass">
+    <button class="close" onclick="closeModal()">×</button>
+    <div id="modalInfo"></div>
+    <input id="playerInput">
+    <button class="btn" onclick="confirmAdd()">إضافة للسلة</button>
+  </div>
+</div>
+
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
 
 <script>
-
-document.getElementById("top").innerHTML =
-  header("games");
-
-document.getElementById("foot").innerHTML =
-  footer();
+document.getElementById("top").innerHTML = header("games");
+document.getElementById("foot").innerHTML = footer();
 
 let currentCategory = "all";
 let currentGame = "all";
 
+const MOBILE_NETWORKS = {
+  Vodafone: { title: "فودافون", img: "vod.png" },
+  Orange: { title: "أورنج", img: "orange.png" },
+  Etisalat: { title: "اتصالات", img: "e.png" }
+};
+
+const MOBILE_VALUES = [10, 25, 50, 75, 100, 150, 199.99, 249.99, 299.99, 349.99];
+
+let selectedMobileNetwork = "Vodafone";
+let selectedCreditValue = 0;
+
 function getUrlCat() {
-
-  const params =
-    new URLSearchParams(location.search);
-
+  const params = new URLSearchParams(location.search);
   return params.get("cat") || "all";
 }
 
-function renderCategoryFilters() {
+function money(value) {
+  return Number(value || 0).toFixed(2).replace(/\.00$/, "");
+}
 
-  const cats = [
-    "all",
-    ...new Set(
-      PRODUCTS.map(
-        p => p.category || "other"
-      )
-    )
-  ];
+function calcPaymentFromCredit(credit) {
+  return Number(credit) * 1.429 + 7;
+}
+
+function renderCategoryFilters() {
+  const cats = ["all", ...new Set(PRODUCTS.map(p => p.category || "other"))];
 
   const names = {
-
-    all:
-      "كل الأقسام",
-
-    games:
-      "🎮 ألعاب",
-
-    mobile:
-      "📱 رصيد",
-
-    fakka:
-      "⚡ كروت فكة",
-
-    cards:
-      "💳 بطاقات",
-
-    other:
-      "أخرى"
+    all: "كل الأقسام",
+    games: "🎮 ألعاب",
+    mobile: "📱 رصيد",
+    fakka: "⚡ كروت فكة",
+    cards: "💳 بطاقات",
+    other: "أخرى"
   };
 
-  categoryFilters.innerHTML =
-    cats.map(cat => `
-
-      <button
-        class="filter ${cat === currentCategory ? "active" : ""}"
-        onclick="setCategory('${cat}')"
-      >
-
-        ${names[cat] || cat}
-
-      </button>
-
-    `).join("");
+  categoryFilters.innerHTML = cats.map(cat => `
+    <button class="filter ${cat === currentCategory ? "active" : ""}" onclick="setCategory('${cat}')">
+      ${names[cat] || cat}
+    </button>
+  `).join("");
 }
 
 function renderGameFilters() {
-
-  const filtered =
-
-    currentCategory === "all"
-
-    ?
-
-    PRODUCTS
-
-    :
-
-    PRODUCTS.filter(
-      p => p.category === currentCategory
-    );
+  const filtered = currentCategory === "all" ? PRODUCTS : PRODUCTS.filter(p => p.category === currentCategory);
 
   const games = [
-
     "all",
-
-    ...new Set(
-      filtered.map(p => p.game)
-    )
+    ...new Set(filtered.filter(p => p.category !== "mobile").map(p => p.game))
   ];
 
-  gameFilters.innerHTML =
-    games.map(g => `
-
-      <button
-        class="filter ${g === currentGame ? "active" : ""}"
-        onclick="setGame('${g}')"
-      >
-
-        ${g === "all"
-          ? "كل المنتجات"
-          : g}
-
-      </button>
-
-    `).join("");
+  gameFilters.innerHTML = games.map(g => `
+    <button class="filter ${g === currentGame ? "active" : ""}" onclick="setGame('${g}')">
+      ${g === "all" ? "كل المنتجات" : g}
+    </button>
+  `).join("");
 }
 
 function setCategory(cat) {
-
   currentCategory = cat;
-
   currentGame = "all";
-
   renderCategoryFilters();
-
   renderGameFilters();
-
   applyFilters();
 }
 
 function setGame(game) {
-
   currentGame = game;
-
   renderGameFilters();
-
   applyFilters();
 }
 
 function mobileBalanceCard() {
+  const net = MOBILE_NETWORKS[selectedMobileNetwork];
+  const pay = selectedCreditValue ? calcPaymentFromCredit(selectedCreditValue) : 0;
 
   return `
+    <div class="glass card" style="grid-column:1/-1;padding:24px;border-radius:30px">
 
-    <div class="glass card balance-card">
-
-      <div
-        style="
-          display:flex;
-          justify-content:space-between;
-          align-items:center;
-          margin-bottom:14px;
-        "
-      >
-
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:18px">
         <div>
-
-          <div class="section-kicker">
-            رصيد موبايل
-          </div>
-
-          <h3>
-            شحن رصيد مباشر
-          </h3>
-
+          <div class="section-kicker">رصيد موبايل</div>
+          <h2 style="margin:8px 0 4px">اختاري الشبكة وقيمة الرصيد</h2>
+          <p class="muted" style="margin:0">الدفع = قيمة الرصيد × 1.429 + 7 جنيه</p>
         </div>
 
-        <div
-          style="
-            font-size:34px;
-          "
-        >
-          📱
+        <div style="width:76px;height:76px;border-radius:24px;background:rgba(255,255,255,.12);display:grid;place-items:center;overflow:hidden">
+          <img src="${net.img}" style="max-width:64px;max-height:64px" onerror="this.style.display='none'">
+        </div>
+      </div>
+
+      <div class="filters" style="margin-bottom:16px">
+        ${Object.keys(MOBILE_NETWORKS).map(key => `
+          <button class="filter mobile-network-btn ${selectedMobileNetwork === key ? "active" : ""}" onclick="selectMobileNetwork('${key}')">
+            ${MOBILE_NETWORKS[key].title}
+          </button>
+        `).join("")}
+      </div>
+
+      <label style="font-weight:900;margin-bottom:10px;display:block">رقم الموبايل المراد شحنه</label>
+      <input id="mobilePhoneInput" placeholder="010xxxxxxxx" style="margin-bottom:18px">
+
+      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px">
+        ${MOBILE_VALUES.map(value => `
+          <button
+            type="button"
+            class="glass card mobile-value-btn"
+            onclick="selectMobileValue(${value})"
+            style="
+              border:${selectedCreditValue === value ? "2px solid var(--s)" : "1px solid var(--line)"};
+              cursor:pointer;
+              text-align:center;
+              padding:18px 10px;
+              box-shadow:none;
+            "
+          >
+            <div style="font-size:26px;font-weight:950">${money(value)}</div>
+            <div class="muted" style="font-size:14px">يدفع ${money(calcPaymentFromCredit(value))} ج.م</div>
+          </button>
+        `).join("")}
+      </div>
+
+      <div class="glass card" style="margin-top:18px;padding:18px;box-shadow:none">
+        <div style="display:flex;justify-content:space-between;gap:12px">
+          <span>الشبكة</span>
+          <b>${net.title}</b>
         </div>
 
-      </div>
-
-      <div class="filters">
-
-        <button
-          class="filter active network-btn"
-          data-net="Vodafone"
-        >
-          فودافون
-        </button>
-
-        <button
-          class="filter network-btn"
-          data-net="Orange"
-        >
-          أورنج
-        </button>
-
-        <button
-          class="filter network-btn"
-          data-net="Etisalat"
-        >
-          اتصالات
-        </button>
-
-      </div>
-
-      <div
-        class="form"
-        style="margin-top:14px"
-      >
-
-        <input
-          id="balanceAmount"
-          type="number"
-          min="9"
-          max="500"
-          placeholder="اكتب قيمة الدفع من 9 لـ 500"
-          oninput="calcBalanceValue()"
-        >
-
-        <div
-          class="glass card"
-          style="
-            padding:14px;
-            margin-top:10px;
-          "
-        >
-
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-            "
-          >
-
-            <span>
-              قيمة الدفع:
-            </span>
-
-            <b id="payValue">
-              0 جنيه
-            </b>
-
-          </div>
-
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-              margin-top:8px;
-            "
-          >
-
-            <span>
-              بعد خصم 7 جنيه:
-            </span>
-
-            <b id="afterFee">
-              0 جنيه
-            </b>
-
-          </div>
-
-          <div
-            style="
-              display:flex;
-              justify-content:space-between;
-              margin-top:8px;
-            "
-          >
-
-            <span>
-              الرصيد المتوقع:
-            </span>
-
-            <b id="balanceValue">
-              0 رصيد
-            </b>
-
-          </div>
-
+        <div style="display:flex;justify-content:space-between;gap:12px;margin-top:10px">
+          <span>قيمة الرصيد</span>
+          <b>${selectedCreditValue ? money(selectedCreditValue) : "0"} رصيد</b>
         </div>
 
-        <button
-          class="btn"
-          style="margin-top:14px"
-          onclick="addBalanceToCart()"
-        >
-
-          إضافة للسلة
-
-        </button>
-
+        <div style="display:flex;justify-content:space-between;gap:12px;margin-top:10px">
+          <span>المبلغ المطلوب دفعه</span>
+          <b style="color:var(--s);font-size:22px">${money(pay)} جنيه</b>
+        </div>
       </div>
+
+      <button class="btn" style="width:100%;margin-top:16px;height:56px;font-size:18px" onclick="addMobileBalanceToCart()">
+        إضافة الرصيد للسلة
+      </button>
 
     </div>
-
   `;
 }
 
-function calcBalanceValue() {
-
-  const amount = Number(
-
-    document.getElementById(
-      "balanceAmount"
-    )?.value || 0
-
-  );
-
-  const after =
-    Math.max(amount - 7, 0);
-
-  const balance =
-    Math.floor(after * 0.74);
-
-  document.getElementById(
-    "payValue"
-  ).innerText =
-    amount + " جنيه";
-
-  document.getElementById(
-    "afterFee"
-  ).innerText =
-    after + " جنيه";
-
-  document.getElementById(
-    "balanceValue"
-  ).innerText =
-    balance + " رصيد";
+function selectMobileNetwork(network) {
+  selectedMobileNetwork = network;
+  applyFilters();
 }
 
-function addBalanceToCart() {
+function selectMobileValue(value) {
+  selectedCreditValue = Number(value);
+  applyFilters();
+}
 
-  const amount = Number(
+function addMobileBalanceToCart() {
+  const phoneInput = document.getElementById("mobilePhoneInput");
+  const phone = phoneInput ? phoneInput.value.trim() : "";
 
-    document.getElementById(
-      "balanceAmount"
-    )?.value || 0
+  if (!selectedCreditValue) return toast("اختاري قيمة الرصيد");
+  if (!phone) return toast("اكتبي رقم الموبايل المراد شحنه");
+  if (!/^01[0-9]{9}$/.test(phone)) return toast("رقم الموبايل غير صحيح");
 
-  );
+  const net = MOBILE_NETWORKS[selectedMobileNetwork];
+  const pay = calcPaymentFromCredit(selectedCreditValue);
 
-  if (amount < 9) {
+  const c = cart();
 
-    return toast(
-      "أقل قيمة دفع 9 جنيه"
-    );
-  }
+  c.push({
+    product_id: null,
+    category: "mobile",
+    game: "رصيد موبايل",
+    name: `${net.title} - رصيد ${money(selectedCreditValue)}`,
+    price: Number(pay.toFixed(2)),
+    playerId: phone,
+    need: "رقم الموبايل",
+    balanceValue: selectedCreditValue
+  });
 
-  if (amount > 500) {
-
-    return toast(
-      "أقصى قيمة دفع 500 جنيه"
-    );
-  }
-
-  const activeBtn =
-    document.querySelector(
-      ".network-btn.active"
-    );
-
-  const network =
-    activeBtn?.dataset.net
-    ||
-    "Vodafone";
-
-  const after =
-    amount - 7;
-
-  const balance =
-    Math.floor(after * 0.74);
-
-  const item = {
-
-    id:
-      "mobile-balance-" + Date.now(),
-
-    game:
-      "رصيد",
-
-    name:
-      `رصيد ${network}`,
-
-    price:
-      amount,
-
-    playerId:
-      network,
-
-    balanceValue:
-      balance,
-
-    image:
-      "vod.png"
-  };
-
-  let cart = JSON.parse(
-
-    localStorage.getItem("cart")
-    ||
-    "[]"
-
-  );
-
-  cart.push(item);
-
-  localStorage.setItem(
-    "cart",
-    JSON.stringify(cart)
-  );
-
-  toast(
-    `تم إضافة ${balance} رصيد للسلة`
-  );
+  setCart(c);
+  toast(`تم إضافة رصيد ${money(selectedCreditValue)} للسلة ✅`);
 }
 
 function applyFilters() {
+  const q = searchBox.value.toLowerCase().trim();
 
-  const q =
-    searchBox.value
-    .toLowerCase()
-    .trim();
+  const list = PRODUCTS.filter(p => {
+    const text = `${p.game} ${p.name} ${p.category}`.toLowerCase();
 
-  const list =
-    PRODUCTS.filter(p => {
+    return (
+      (currentCategory === "all" || p.category === currentCategory)
+      &&
+      (currentGame === "all" || p.game === currentGame)
+      &&
+      text.includes(q)
+      &&
+      p.category !== "mobile"
+    );
+  });
 
-      const text =
+  const shouldShowMobile =
+    currentCategory === "all" ||
+    currentCategory === "mobile" ||
+    q.includes("رصيد") ||
+    q.includes("فودافون") ||
+    q.includes("اورنج") ||
+    q.includes("أورنج") ||
+    q.includes("اتصالات");
 
-        `${p.game}
-        ${p.name}
-        ${p.category}`
+  const mobileHTML = shouldShowMobile ? mobileBalanceCard() : "";
 
-        .toLowerCase();
-
-      return (
-
-        (
-
-          currentCategory === "all"
-
-          ||
-
-          p.category === currentCategory
-
-        )
-
-        &&
-
-        (
-
-          currentGame === "all"
-
-          ||
-
-          p.game === currentGame
-
-        )
-
-        &&
-
-        text.includes(q)
-
-        &&
-
-        p.game !== "رصيد"
-
-      );
-
-    });
-
-  resultCount.textContent =
-
-    `عرض ${list.length}
-    من ${PRODUCTS.length}
-    منتج`;
+  resultCount.textContent = `عرض ${list.length + (shouldShowMobile ? 1 : 0)} منتج`;
 
   products.innerHTML =
-
-    mobileBalanceCard()
-
-    +
-
+    mobileHTML +
     (
-
       list.length
-
-      ?
-
-      list.map(p =>
-
-        productCard(
-          p,
-          PRODUCTS.indexOf(p)
-        )
-
-      ).join("")
-
-      :
-
-      `
-      <div class='glass card'>
-
-        لا توجد منتجات مطابقة.
-
-      </div>
-      `
+        ? list.map(p => productCard(p, PRODUCTS.indexOf(p))).join("")
+        : (!shouldShowMobile ? "<div class='glass card'>لا توجد منتجات مطابقة.</div>" : "")
     );
-
-  document
-    .querySelectorAll(".network-btn")
-    .forEach(btn => {
-
-      btn.onclick = () => {
-
-        document
-          .querySelectorAll(".network-btn")
-          .forEach(b =>
-
-            b.classList.remove("active")
-
-          );
-
-        btn.classList.add("active");
-      };
-
-    });
 }
 
 async function initStore() {
-
-  renderSkeleton(
-    "products",
-    8
-  );
-
+  renderSkeleton("products", 8);
   await loadProductsFromDB();
-
-  currentCategory =
-    getUrlCat();
-
+  currentCategory = getUrlCat();
   renderCategoryFilters();
-
   renderGameFilters();
-
   applyFilters();
 }
 
 initStore();
-
 </script>
 
 </body>
