@@ -68,7 +68,7 @@ async function loadWalletForCheckout() {
 
   let foundWallet = null;
 
-  let res1 = await client
+  const res1 = await client
     .from("wallets")
     .select("*")
     .eq("user_id", loggedUser.id)
@@ -79,7 +79,7 @@ async function loadWalletForCheckout() {
   }
 
   if (!foundWallet) {
-    let res2 = await client
+    const res2 = await client
       .from("wallets")
       .select("*")
       .eq("email", loggedUser.email)
@@ -97,24 +97,25 @@ async function loadWalletForCheckout() {
       balance: 0
     }]);
 
-    wallet = { balance: 0 };
+    wallet = {
+      user_id: loggedUser.id,
+      email: loggedUser.email,
+      balance: 0
+    };
   } else {
     wallet = foundWallet;
   }
 
   walletBalance.textContent = Number(wallet.balance || 0);
 }
+
 function renderSummary() {
-
   const c = cart();
-
   let total = 0;
 
-  summary.innerHTML =
-    c.length
-      ? c.map(item => {
-
-        total += Number(item.price);
+  summary.innerHTML = c.length
+    ? c.map(item => {
+        total += Number(item.price || 0);
 
         return `
           <div class="item-row">
@@ -125,30 +126,22 @@ function renderSummary() {
                 ${item.playerId}
               </p>
             </div>
-
             <b>${item.price} جنيه</b>
           </div>
         `;
-
       }).join("")
-      : "<p class='muted'>السلة فارغة.</p>";
+    : "<p class='muted'>السلة فارغة.</p>";
 
   orderTotal = total;
   finalTotal.textContent = total + " جنيه";
 }
 
 async function submitOrder() {
-
   const c = cart();
 
-  if (!loggedUser)
-    return toast("سجلي دخول الأول");
-
-  if (!c.length)
-    return toast("السلة فارغة");
-
-  if (!customerName.value || !phone.value)
-    return toast("اكتبي الاسم ورقم الواتساب");
+  if (!loggedUser) return toast("سجلي دخول الأول");
+  if (!c.length) return toast("السلة فارغة");
+  if (!customerName.value || !phone.value) return toast("اكتبي الاسم ورقم الواتساب");
 
   const balance = Number(wallet.balance || 0);
 
@@ -161,35 +154,28 @@ async function submitOrder() {
   const code = orderCode();
 
   const rows = c.map(item => ({
-
     user_id: loggedUser.id,
     product_id: item.product_id || null,
     category: item.category || null,
-
     customer_name: customerName.value,
     phone: phone.value,
     customer_phone: phone.value,
-
     game: item.game,
     package: item.name,
     player_id: item.playerId,
     price: Number(item.price),
-
     status: "pending",
     order_code: code,
     notes: notes.value,
-
     payment_method: "wallet",
     wallet_paid: true
-
   }));
 
   const { error } = await client
     .from("orders")
     .insert(rows);
 
-  if (error)
-    return alert(error.message);
+  if (error) return alert(error.message);
 
   const itemsText = c.map(item =>
 `🎮 ${item.game}
@@ -226,63 +212,48 @@ ${orderTotal} جنيه
 ${notes.value || "لا يوجد"}`;
 
   try {
+    const tg = await fetch(
+      "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          type: "order",
+          message: msg
+        })
+      }
+    );
 
-  const tg = await fetch(
-    "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram",
-    {
+    const tgData = await tg.json();
+    console.log("Telegram response:", tgData);
 
-      method: "POST",
-
-      headers: {
-        "Content-Type": "application/json"
-      },
-
-      body: JSON.stringify({
-        type: "order",
-        message: msg
-      })
-
+    if (!tgData.ok) {
+      alert("Telegram Error: " + JSON.stringify(tgData));
     }
-  );
-
-  const tgData = await tg.json();
-
-  console.log("Telegram response:", tgData);
-
-  if (!tgData.ok) {
-
-    alert(
-      "Telegram Error: " +
-      JSON.stringify(tgData)
-    );
-
-  }
-
-} catch (err) {
-
-  alert(
-    "Telegram Fetch Error: " +
-    err.message
-  );
-
-}
-    );
   } catch (err) {
-    console.log("Telegram Error:", err);
+    console.log("Telegram Fetch Error:", err);
   }
 
   const newBalance = balance - orderTotal;
 
-  const { error: walletError } = await client
+  let walletQuery = client
     .from("wallets")
     .update({
       balance: newBalance,
       updated_at: new Date().toISOString()
-    })
-    .eq("user_id", loggedUser.id);
+    });
 
-  if (walletError)
-    return alert(walletError.message);
+  if (wallet.id) {
+    walletQuery = walletQuery.eq("id", wallet.id);
+  } else {
+    walletQuery = walletQuery.eq("user_id", loggedUser.id);
+  }
+
+  const { error: walletError } = await walletQuery;
+
+  if (walletError) return alert(walletError.message);
 
   await client
     .from("wallet_transactions")
@@ -303,74 +274,37 @@ ${notes.value || "لا يوجد"}`;
       type: "order"
     }]);
 
+  try {
+    await fetch(
+      "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-email",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          to: loggedUser.email,
+          subject: `تم استلام طلبك ${code} | DevPlay`,
+          html: `
+            <div style="font-family:sans-serif;background:#0f172a;padding:30px;color:white;border-radius:20px">
+              <h1 style="color:#38bdf8">🎮 DevPlay</h1>
+              <h2>تم استلام طلبك بنجاح ✅</h2>
+              <p>رقم الطلب: <b>${code}</b></p>
+              <p>الإجمالي: <b>${orderTotal} جنيه</b></p>
+              <p>حالة الطلب: <b style="color:#facc15">قيد المراجعة</b></p>
+              <hr>
+              <p>شكرًا لاستخدامك DevPlay 💜</p>
+            </div>
+          `
+        })
+      }
+    );
+  } catch (err) {
+    console.log("Email Error:", err);
+  }
+
   localStorage.removeItem("cart");
-await fetch(
-"https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-email",
-{
 
-  method:"POST",
-
-  headers:{
-    "Content-Type":"application/json"
-  },
-
-  body:JSON.stringify({
-
-    to: loggedUser.email,
-
-    subject:
-      `تم استلام طلبك ${code} | DevPlay`,
-
-    html: `
-
-    <div style="
-      font-family:sans-serif;
-      background:#0f172a;
-      padding:30px;
-      color:white;
-      border-radius:20px;
-    ">
-
-      <h1 style="
-        color:#38bdf8;
-      ">
-        🎮 DevPlay
-      </h1>
-
-      <h2>
-        تم استلام طلبك بنجاح ✅
-      </h2>
-
-      <p>
-        رقم الطلب:
-        <b>${code}</b>
-      </p>
-
-      <p>
-        الإجمالي:
-        <b>${orderTotal} جنيه</b>
-      </p>
-
-      <p>
-        حالة الطلب:
-        <b style="color:#facc15">
-          قيد المراجعة
-        </b>
-      </p>
-
-      <hr>
-
-      <p>
-        شكرًا لاستخدامك DevPlay 💜
-      </p>
-
-    </div>
-
-    `
-
-  })
-
-});
   toast("تم إرسال الطلب والدفع من الرصيد ✅");
 
   setTimeout(() => {
