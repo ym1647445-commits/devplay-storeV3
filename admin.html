@@ -42,7 +42,9 @@
         </select>
         <button class="btn" onclick="load()">تحديث</button>
         <a class="btn dark" href="admin-products.html">إدارة المنتجات</a>
+        <a class="btn dark" href="admin-users.html">إدارة المستخدمين</a>
         <a class="btn dark" href="admin-wallet.html">إدارة المحفظة</a>
+        <a class="btn dark" href="admin-users.html">إدارة المستخدمين</a>
         <a class="btn" href="offers.html">العروض</a>
         <button class="btn red" onclick="adminLogout()">خروج الأدمن</button>
       </div>
@@ -69,6 +71,9 @@ async function adminLogin() {
 
   if (error) return alert(error.message);
   if (data !== true) return alert("بيانات الأدمن غلط");
+
+  const adminOk = await requireAdminPage();
+  if (!adminOk) return;
 
   sessionStorage.setItem("devplay_admin", "yes");
   guard.style.display = "none";
@@ -252,9 +257,12 @@ async function deleteOrder(code) {
 }
 
 if (sessionStorage.getItem("devplay_admin") === "yes") {
-  guard.style.display = "none";
-  panel.style.display = "block";
-  load();
+  requireAdminPage().then(ok => {
+    if (!ok) return;
+    guard.style.display = "none";
+    panel.style.display = "block";
+    load();
+  });
 }
 </script>
 </body>
