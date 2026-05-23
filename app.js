@@ -48,3 +48,101 @@ function addScrollTopButton(){
 }
 
 document.addEventListener("DOMContentLoaded", addScrollTopButton);
+
+
+
+/* DevPlay Security Helpers */
+const DEVPLAY_ADMIN_EMAILS = ["ym1647445@gmail.com"];
+
+async function isCurrentUserAdmin(){
+  const user = await currentUser();
+  return !!(user && DEVPLAY_ADMIN_EMAILS.includes((user.email || "").toLowerCase()));
+}
+
+async function requireAdminPage(){
+  const ok = await isCurrentUserAdmin();
+  if(!ok){
+    sessionStorage.removeItem("devplay_admin");
+    alert("غير مصرح لك بدخول لوحة الإدارة");
+    location.href = "index.html";
+    return false;
+  }
+  return true;
+}
+
+function getDeviceInfo(){
+  return {
+    userAgent:navigator.userAgent,
+    language:navigator.language,
+    platform:navigator.platform,
+    screen:`${screen.width}x${screen.height}`,
+    timezone:Intl.DateTimeFormat().resolvedOptions().timeZone || "",
+    time:new Date().toISOString()
+  };
+}
+
+async function sendSecurityAlert(title,message){
+  try{
+    await fetch("https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({type:"order",message:`🔐 ${title}\n\n${message}`})
+    });
+  }catch(e){console.log("security alert error",e)}
+}
+
+async function logLoginEvent(user,method="password"){
+  if(!user)return;
+  const d=getDeviceInfo();
+
+  try{
+    await client.from("login_events").insert([{
+      user_id:user.id,
+      email:user.email,
+      method,
+      user_agent:d.userAgent,
+      platform:d.platform,
+      language:d.language,
+      screen:d.screen,
+      timezone:d.timezone
+    }]);
+  }catch(e){console.log("login log error",e)}
+
+  const key=`${d.platform}|${d.language}|${d.screen}|${d.timezone}`;
+  const saved=JSON.parse(localStorage.getItem("devplay_known_devices")||"[]");
+
+  if(!saved.includes(key)){
+    saved.push(key);
+    localStorage.setItem("devplay_known_devices",JSON.stringify(saved));
+    await sendSecurityAlert("تسجيل دخول من جهاز جديد",`📧 البريد: ${user.email}\n🧭 الطريقة: ${method}\n💻 الجهاز: ${d.platform}\n🌍 اللغة: ${d.language}\n🖥️ الشاشة: ${d.screen}\n🕒 الوقت: ${d.time}`);
+  }
+}
+
+async function checkBannedEmail(email){
+  if(!email)return {banned:false};
+  const {data,error}=await client.from("banned_users").select("*").eq("email",email.toLowerCase()).maybeSingle();
+  if(error){console.log("ban check error",error);return {banned:false}}
+  if(data && data.active !== false)return {banned:true,reason:data.reason || "تم حظر هذا الحساب من DevPlay."};
+  return {banned:false};
+}
+
+async function requireNotBanned(){
+  const user=await currentUser();
+  if(!user)return true;
+  const ban=await checkBannedEmail(user.email);
+  if(ban.banned){
+    await client.auth.signOut();
+    alert("هذا الحساب محظور.\nالسبب: "+ban.reason);
+    location.href="login.html";
+    return false;
+  }
+  return true;
+}
+
+async function signInWithGoogle(){
+  const {error}=await client.auth.signInWithOAuth({
+    provider:"google",
+    options:{redirectTo:location.origin + "/account.html"}
+  });
+  if(error)alert(error.message);
+}
