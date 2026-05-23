@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة المستخدمين - DevPlay</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+<div id="top"></div>
+
+<section class="section container">
+  <div id="guard" class="glass card" style="max-width:480px;margin:auto">
+    <h2>دخول الأدمن</h2>
+    <div class="form">
+      <input id="adminEmail" type="email" placeholder="إيميل الأدمن">
+      <input id="adminPassword" type="password" placeholder="باسورد الأدمن">
+      <button class="btn" onclick="adminLogin()">دخول</button>
+    </div>
+  </div>
+
+  <div id="panel" style="display:none">
+    <div class="section-head">
+      <h2>إدارة المستخدمين</h2>
+      <div>
+        <button class="btn" onclick="loadUsers()">تحديث</button>
+        <a class="btn dark" href="admin.html">الطلبات</a>
+        <a class="btn dark" href="admin-wallet.html">المحفظة</a>
+        <button class="btn red" onclick="adminLogout()">خروج</button>
+      </div>
+    </div>
+
+    <div class="glass card">
+      <div class="filters">
+        <input id="search" oninput="renderUsers()" placeholder="بحث بالإيميل / الاسم / الهاتف">
+        <select id="filter" onchange="renderUsers()">
+          <option value="all">كل المستخدمين</option>
+          <option value="banned">المحظورين</option>
+          <option value="active">غير المحظورين</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="usersList" style="margin-top:16px"></div>
+  </div>
+</section>
+
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+document.getElementById("top").innerHTML = header("admin");
+document.getElementById("foot").innerHTML = footer();
+
+let users = [];
+let banned = [];
+
+async function adminLogin() {
+  const { data, error } = await client.rpc("check_admin_login", {
+    admin_email: adminEmail.value.trim(),
+    admin_password: adminPassword.value
+  });
+
+  if (error) return alert(error.message);
+  if (data !== true) return alert("بيانات الأدمن غلط");
+
+  const adminOk = await requireAdminPage();
+  if (!adminOk) return;
+
+  sessionStorage.setItem("devplay_admin", "yes");
+  guard.style.display = "none";
+  panel.style.display = "block";
+  loadUsers();
+}
+
+function adminLogout() {
+  sessionStorage.removeItem("devplay_admin");
+  location.reload();
+}
+
+function normalizeEmail(email) {
+  return String(email || "").trim().toLowerCase();
+}
+
+async function loadUsers() {
+  const adminOk = await requireAdminPage();
+  if (!adminOk) return;
+
+  const { data: wallets } = await client.from("wallets").select("*");
+  const { data: orders } = await client.from("orders").select("*");
+  const { data: topups } = await client.from("wallet_topups").select("*");
+  const { data: bans } = await client.from("banned_users").select("*");
+
+  banned = bans || [];
+
+  const map = {};
+
+  function ensure(email, userId = "", name = "", phone = "") {
+    email = normalizeEmail(email);
+    if (!email) return null;
+
+    if (!map[email]) {
+      map[email] = {
+        email,
+        user_id: userId || "",
+        name: name || "",
+        phone: phone || "",
+        balance: 0,
+        orders: 0,
+        topups: 0,
+        spent: 0,
+        rejectedTopups: 0
+      };
+    }
+
+    if (userId && !map[email].user_id) map[email].user_id = userId;
+    if (name && !map[email].name) map[email].name = name;
+    if (phone && !map[email].phone) map[email].phone = phone;
+
+    return map[email];
+  }
+
+  (wallets || []).forEach(w => {
+    const u = ensure(w.email, w.user_id);
+    if (u) u.balance = Number(w.balance || 0);
+  });
+
+  (orders || []).forEach(o => {
+    const u = ensure(o.email || o.customer_email, o.user_id, o.customer_name, o.phone || o.customer_phone);
+    if (u) {
+      u.orders += 1;
+      u.spent += Number(o.price || 0);
+    }
+  });
+
+  (topups || []).forEach(t => {
+    const u = ensure(t.customer_email, t.user_id, t.customer_name, t.transfer_phone);
+    if (u) {
+      u.topups += 1;
+      if (t.status === "rejected") u.rejectedTopups += 1;
+    }
+  });
+
+  users = Object.values(map).sort((a,b) => b.orders - a.orders);
+  renderUsers();
+}
+
+function isBanned(email) {
+  email = normalizeEmail(email);
+  return banned.find(b => normalizeEmail(b.email) === email && b.active !== false);
+}
+
+function renderUsers() {
+  const q = search.value.toLowerCase().trim();
+  const f = filter.value;
+
+  const list = users.filter(u => {
+    const ban = isBanned(u.email);
+    const text = `${u.email} ${u.name} ${u.phone}`.toLowerCase();
+
+    return text.includes(q)
+      && (f === "all" || (f === "banned" && ban) || (f === "active" && !ban));
+  });
+
+  usersList.innerHTML = list.length ? list.map(u => {
+    const ban = isBanned(u.email);
+
+    return `
+      <div class="glass card" style="margin-bottom:14px">
+        <h3>${u.name || "مستخدم"} ${ban ? `<span class="status rejected">محظور</span>` : `<span class="status shipped">نشط</span>`}</h3>
+        <p><b>الإيميل:</b> ${u.email}</p>
+        <p><b>الهاتف:</b> ${u.phone || "-"}</p>
+        <p><b>الرصيد:</b> ${u.balance} جنيه</p>
+        <p><b>الطلبات:</b> ${u.orders} | <b>طلبات الرصيد:</b> ${u.topups} | <b>مرفوضة:</b> ${u.rejectedTopups}</p>
+        <p><b>إجمالي الطلبات:</b> ${u.spent} جنيه</p>
+
+        <div class="filters">
+          <button class="btn" onclick="editBalance('${u.user_id}', '${u.email}', ${u.balance})">تعديل الرصيد</button>
+          <button class="btn red" onclick="banUser('${u.email}')">حظر</button>
+          <button class="btn dark" onclick="unbanUser('${u.email}')">فك الحظر</button>
+          <button class="btn red" onclick="cleanupUser('${u.user_id}', '${u.email}')">حذف بياناته</button>
+        </div>
+      </div>
+    `;
+  }).join("") : "<div class='glass card'>لا يوجد مستخدمين.</div>";
+}
+
+async function editBalance(userId, email, oldBalance) {
+  const value = prompt("اكتبي الرصيد الجديد:", oldBalance);
+
+  if (value === null) return;
+
+  const newBalance = Number(value);
+
+  if (Number.isNaN(newBalance) || newBalance < 0) {
+    return alert("رصيد غير صحيح");
+  }
+
+  if (!userId) {
+    return alert("لا يوجد user_id لهذا المستخدم.");
+  }
+
+  const { data: wallet } = await client
+    .from("wallets")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (wallet) {
+    await client
+      .from("wallets")
+      .update({
+        balance: newBalance,
+        email,
+        updated_at: new Date().toISOString()
+      })
+      .eq("user_id", userId);
+  } else {
+    await client
+      .from("wallets")
+      .insert([{
+        user_id: userId,
+        email,
+        balance: newBalance
+      }]);
+  }
+
+  await client.from("wallet_transactions").insert([{
+    user_id: userId,
+    type: "manual",
+    amount: newBalance,
+    note: "تعديل رصيد يدوي من الأدمن"
+  }]);
+
+  toast("تم تعديل الرصيد");
+  loadUsers();
+}
+
+async function banUser(email) {
+  const reason = prompt("سبب الحظر:", "طلبات رصيد وهمية متكررة");
+
+  if (!reason) return;
+
+  const activeBan = isBanned(email);
+
+  if (activeBan) {
+    await client
+      .from("banned_users")
+      .update({
+        active: true,
+        reason,
+        updated_at: new Date().toISOString()
+      })
+      .eq("email", normalizeEmail(email));
+  } else {
+    await client
+      .from("banned_users")
+      .insert([{
+        email: normalizeEmail(email),
+        reason,
+        active: true
+      }]);
+  }
+
+  toast("تم حظر البريد");
+  loadUsers();
+}
+
+async function unbanUser(email) {
+  await client
+    .from("banned_users")
+    .update({
+      active: false,
+      updated_at: new Date().toISOString()
+    })
+    .eq("email", normalizeEmail(email));
+
+  toast("تم فك الحظر");
+  loadUsers();
+}
+
+async function cleanupUser(userId, email) {
+  if (!confirm("حذف بيانات هذا المستخدم من الطلبات والمحفظة وطلبات الرصيد؟")) return;
+
+  email = normalizeEmail(email);
+
+  if (userId) {
+    await client.from("orders").delete().eq("user_id", userId);
+    await client.from("wallet_transactions").delete().eq("user_id", userId);
+    await client.from("wallet_topups").delete().eq("user_id", userId);
+    await client.from("notifications").delete().eq("user_id", userId);
+    await client.from("saved_ids").delete().eq("user_id", userId);
+    await client.from("wallets").delete().eq("user_id", userId);
+  }
+
+  if (email) {
+    await client.from("orders").delete().eq("email", email);
+    await client.from("wallet_topups").delete().eq("customer_email", email);
+
+    await client.from("banned_users").insert([{
+      email,
+      reason: "تم حذف بيانات الحساب وحظره",
+      active: true
+    }]);
+  }
+
+  toast("تم حذف البيانات وحظر البريد");
+  loadUsers();
+}
+
+if (sessionStorage.getItem("devplay_admin") === "yes") {
+  requireAdminPage().then(ok => {
+    if (!ok) return;
+
+    guard.style.display = "none";
+    panel.style.display = "block";
+    loadUsers();
+  });
+}
+</script>
+</body>
+</html>
