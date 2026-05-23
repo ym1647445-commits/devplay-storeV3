@@ -66,6 +66,9 @@ async function loadWalletForCheckout() {
     return;
   }
 
+  const allowed = await requireNotBanned();
+  if (!allowed) return;
+
   let foundWallet = null;
 
   const res1 = await client
