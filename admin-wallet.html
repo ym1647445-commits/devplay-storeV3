@@ -98,37 +98,137 @@ function renderTopups() {
       <p><b>المبلغ:</b> ${t.amount} جنيه</p>
       <p><b>رقم العملية:</b> ${t.payment_code || "-"}</p>
       <a class="btn dark" target="_blank" href="${t.proof_url}">فتح صورة التحويل</a>
-      <button class="btn green" onclick="approveTopup(${t.id}, '${t.user_id}', ${Number(t.amount)})">قبول وإضافة الرصيد</button>
-      <button class="btn red" onclick="rejectTopup(${t.id})">رفض</button>
+      <button class="btn green" onclick="approveTopup(${t.id}, '${t.user_id}', ${Number(t.amount)}, '${t.customer_email || ""}', '${t.customer_name || ""}')">قبول وإضافة الرصيد</button>
+      <button class="btn red" onclick="rejectTopup(${t.id}, '${t.customer_email || ""}', '${t.customer_name || ""}', ${Number(t.amount)})">رفض</button>
       <button class="btn red" onclick="deleteTopup(${t.id})">حذف</button>
     </div>
   `).join("") : "<div class='glass card'>لا توجد طلبات.</div>";
 }
 
-async function approveTopup(id, userId, amount) {
+async function approveTopup(id, userId, amount, customerEmail = "", customerName = "") {
   if (!userId) return alert("الطلب غير مربوط بحساب، لازم العميل يسجل دخول.");
   if (!confirm("قبول الطلب وإضافة الرصيد؟")) return;
-  let { data: wallet } = await client.from("wallets").select("*").eq("user_id", userId).maybeSingle();
+
+  let { data: wallet } = await client
+    .from("wallets")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
   if (!wallet) {
-    const { error: createError } = await client.from("wallets").insert([{ user_id: userId, balance: 0 }]);
+    const { error: createError } = await client
+      .from("wallets")
+      .insert([{
+        user_id: userId,
+        email: customerEmail || null,
+        balance: 0
+      }]);
+
     if (createError) return alert(createError.message);
+
     wallet = { balance: 0 };
   }
+
   const newBalance = Number(wallet.balance || 0) + Number(amount);
-  const { error: walletError } = await client.from("wallets").update({ balance: newBalance, updated_at: new Date().toISOString() }).eq("user_id", userId);
+
+  const { error: walletError } = await client
+    .from("wallets")
+    .update({
+      balance: newBalance,
+      updated_at: new Date().toISOString()
+    })
+    .eq("user_id", userId);
+
   if (walletError) return alert(walletError.message);
-  await client.from("wallet_transactions").insert([{ user_id: userId, type: "credit", amount: amount, note: "إضافة رصيد من فودافون كاش", ref_id: id }]);
-  await client.from("wallet_topups").update({ status: "shipped" }).eq("id", id);
-  await client.from("notifications").insert([{ user_id: userId, title: "تم إضافة الرصيد", message: `تم إضافة ${amount} جنيه إلى محفظتك`, type: "wallet" }]);
-  toast("تم قبول الإضافة");
+
+  await client.from("wallet_transactions").insert([{
+    user_id: userId,
+    type: "credit",
+    amount: amount,
+    note: "إضافة رصيد من فودافون كاش",
+    ref_id: id
+  }]);
+
+  await client
+    .from("wallet_topups")
+    .update({ status: "shipped" })
+    .eq("id", id);
+
+  await client.from("notifications").insert([{
+    user_id: userId,
+    title: "تم إضافة الرصيد",
+    message: `تم إضافة ${amount} جنيه إلى محفظتك`,
+    type: "wallet"
+  }]);
+
+  if (customerEmail) {
+    try {
+      await fetch(
+        "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            to: customerEmail,
+            name: customerName || "عميل DevPlay",
+            type: "wallet_added",
+            orderCode: `TOPUP-${id}`,
+            product: "إضافة رصيد للمحفظة",
+            playerId: "Vodafone Cash",
+            amount: amount,
+            trackUrl: "https://devplaystudio.com/wallet.html"
+          })
+        }
+      );
+    } catch (e) {
+      console.log("Wallet Email Error", e);
+    }
+  }
+
+  toast("تم قبول الإضافة وإرسال الإيميل");
   loadTopups();
 }
 
-async function rejectTopup(id) {
+async function rejectTopup(id, customerEmail = "", customerName = "", amount = 0) {
   if (!confirm("رفض طلب الإضافة؟")) return;
-  const { error } = await client.from("wallet_topups").update({ status: "rejected" }).eq("id", id);
+
+  const { error } = await client
+    .from("wallet_topups")
+    .update({ status: "rejected" })
+    .eq("id", id);
+
   if (error) return alert(error.message);
-  toast("تم الرفض");
+
+  if (customerEmail) {
+    try {
+      await fetch(
+        "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-email",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            to: customerEmail,
+            name: customerName || "عميل DevPlay",
+            type: "wallet_rejected",
+            orderCode: `TOPUP-${id}`,
+            product: "إضافة رصيد للمحفظة",
+            playerId: "Vodafone Cash",
+            amount: amount,
+            reason: "لم نتمكن من تأكيد عملية التحويل",
+            trackUrl: "https://devplaystudio.com/wallet.html"
+          })
+        }
+      );
+    } catch (e) {
+      console.log("Wallet Rejection Email Error", e);
+    }
+  }
+
+  toast("تم الرفض وإرسال الإيميل");
   loadTopups();
 }
 
