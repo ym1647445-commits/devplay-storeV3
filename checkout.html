@@ -153,23 +153,24 @@ async function submitOrder() {
 
   const code = orderCode();
 
-  const rows = c.map(item => ({
-    user_id: loggedUser.id,
-    product_id: item.product_id || null,
-    category: item.category || null,
-    customer_name: customerName.value,
-    phone: phone.value,
-    customer_phone: phone.value,
-    game: item.game,
-    package: item.name,
-    player_id: item.playerId,
-    price: Number(item.price),
-    status: "pending",
-    order_code: code,
-    notes: notes.value,
-    payment_method: "wallet",
-    wallet_paid: true
-  }));
+const rows = c.map(item => ({
+  user_id: loggedUser.id,
+  email: loggedUser.email,
+  product_id: item.product_id || null,
+  category: item.category || null,
+  customer_name: customerName.value,
+  phone: phone.value,
+  customer_phone: phone.value,
+  game: item.game,
+  package: item.name,
+  player_id: item.playerId,
+  price: Number(item.price),
+  status: "pending",
+  order_code: code,
+  notes: notes.value,
+  payment_method: "wallet",
+  wallet_paid: true
+}));
 
   const { error } = await client
     .from("orders")
