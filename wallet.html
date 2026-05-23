@@ -93,6 +93,9 @@ async function ensureLoggedIn() {
     return false;
   }
 
+  const allowed = await requireNotBanned();
+  if (!allowed) return false;
+
   return true;
 }
 
