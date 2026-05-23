@@ -192,16 +192,40 @@ async function sendTopup() {
 📸 صورة التحويل:
 ${proofUrl}`;
 
-  fetch("https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram", {
-  method: "POST",
-  headers: {
-    "Content-Type": "application/json"
-  },
-  body: JSON.stringify({
-    type: "wallet",
-    message: msg
-  })
-});
+  await fetch("https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-telegram", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      type: "wallet",
+      message: msg
+    })
+  });
+
+  try {
+    await fetch(
+      "https://bwtchfidnvlwyikhawua.supabase.co/functions/v1/send-email",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          to: loggedUser.email,
+          name: customerName.value,
+          type: "wallet_pending",
+          orderCode: "طلب إضافة رصيد",
+          product: "إضافة رصيد للمحفظة",
+          playerId: transferPhone.value,
+          amount: amount.value,
+          trackUrl: "https://devplaystudio.com/wallet.html"
+        })
+      }
+    );
+  } catch (err) {
+    console.log("Wallet pending email error:", err);
+  }
 
   toast("تم إرسال طلب إضافة الرصيد ✅");
   setTimeout(() => location.reload(), 1000);
