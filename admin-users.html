@@ -41,6 +41,8 @@
           <option value="all">كل المستخدمين</option>
           <option value="banned">المحظورين</option>
           <option value="active">غير المحظورين</option>
+          <option value="logged">دخلوا قبل كده</option>
+          <option value="never">مفيش دخول مسجل</option>
         </select>
       </div>
     </div>
@@ -58,6 +60,7 @@ document.getElementById("foot").innerHTML = footer();
 
 let users = [];
 let banned = [];
+let loginEvents = [];
 
 async function adminLogin() {
   const { data, error } = await client.rpc("check_admin_login", {
@@ -95,7 +98,18 @@ async function loadUsers() {
   const { data: topups } = await client.from("wallet_topups").select("*");
   const { data: bans } = await client.from("banned_users").select("*");
 
+  const { data: events, error: eventsError } = await client
+    .from("login_events")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(1000);
+
+  if (eventsError) {
+    console.log("Login events error:", eventsError);
+  }
+
   banned = bans || [];
+  loginEvents = events || [];
 
   const map = {};
 
@@ -113,7 +127,12 @@ async function loadUsers() {
         orders: 0,
         topups: 0,
         spent: 0,
-        rejectedTopups: 0
+        rejectedTopups: 0,
+        loginCount: 0,
+        lastLogin: null,
+        lastDevice: "-",
+        lastMethod: "-",
+        events: []
       };
     }
 
@@ -145,8 +164,64 @@ async function loadUsers() {
     }
   });
 
-  users = Object.values(map).sort((a,b) => b.orders - a.orders);
+  (loginEvents || []).forEach(ev => {
+    const u = ensure(ev.email, ev.user_id);
+    if (u) {
+      u.loginCount += 1;
+      u.events.push(ev);
+
+      if (!u.lastLogin || new Date(ev.created_at) > new Date(u.lastLogin)) {
+        u.lastLogin = ev.created_at;
+        u.lastDevice = `${ev.platform || "-"} | ${ev.screen || "-"} | ${ev.timezone || "-"}`;
+        u.lastMethod = ev.method || "-";
+      }
+    }
+  });
+
+  users = Object.values(map).sort((a, b) => {
+    const ad = a.lastLogin ? new Date(a.lastLogin).getTime() : 0;
+    const bd = b.lastLogin ? new Date(b.lastLogin).getTime() : 0;
+    return bd - ad;
+  });
+
   renderUsers();
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  try {
+    return new Date(value).toLocaleString("ar-EG");
+  } catch (e) {
+    return value;
+  }
+}
+
+function safeId(email) {
+  return btoa(unescape(encodeURIComponent(email))).replaceAll("=", "");
+}
+
+function renderLoginEvents(events) {
+  if (!events || !events.length) {
+    return "<p class='muted'>لا يوجد سجل دخول لهذا المستخدم.</p>";
+  }
+
+  return events.slice(0, 20).map(ev => `
+    <div class="glass card" style="margin-bottom:8px;box-shadow:none;padding:14px">
+      <p><b>الوقت:</b> ${formatDate(ev.created_at)}</p>
+      <p><b>الطريقة:</b> ${ev.method || "-"}</p>
+      <p><b>الجهاز:</b> ${ev.platform || "-"}</p>
+      <p><b>الشاشة:</b> ${ev.screen || "-"}</p>
+      <p><b>اللغة:</b> ${ev.language || "-"}</p>
+      <p><b>المنطقة:</b> ${ev.timezone || "-"}</p>
+      <p class="muted" style="word-break:break-word"><b>User Agent:</b> ${ev.user_agent || "-"}</p>
+    </div>
+  `).join("");
+}
+
+function toggleLoginDetails(id) {
+  const box = document.getElementById("logins-" + id);
+  if (!box) return;
+  box.style.display = box.style.display === "none" ? "block" : "none";
 }
 
 function isBanned(email) {
@@ -163,26 +238,49 @@ function renderUsers() {
     const text = `${u.email} ${u.name} ${u.phone}`.toLowerCase();
 
     return text.includes(q)
-      && (f === "all" || (f === "banned" && ban) || (f === "active" && !ban));
+      && (
+        f === "all" ||
+        (f === "banned" && ban) ||
+        (f === "active" && !ban) ||
+        (f === "logged" && u.loginCount > 0) ||
+        (f === "never" && u.loginCount === 0)
+      );
   });
 
   usersList.innerHTML = list.length ? list.map(u => {
     const ban = isBanned(u.email);
+    const id = safeId(u.email);
 
     return `
       <div class="glass card" style="margin-bottom:14px">
-        <h3>${u.name || "مستخدم"} ${ban ? `<span class="status rejected">محظور</span>` : `<span class="status shipped">نشط</span>`}</h3>
+        <h3>
+          ${u.name || "مستخدم"}
+          ${ban ? `<span class="status rejected">محظور</span>` : `<span class="status shipped">نشط</span>`}
+        </h3>
+
         <p><b>الإيميل:</b> ${u.email}</p>
         <p><b>الهاتف:</b> ${u.phone || "-"}</p>
         <p><b>الرصيد:</b> ${u.balance} جنيه</p>
         <p><b>الطلبات:</b> ${u.orders} | <b>طلبات الرصيد:</b> ${u.topups} | <b>مرفوضة:</b> ${u.rejectedTopups}</p>
         <p><b>إجمالي الطلبات:</b> ${u.spent} جنيه</p>
 
+        <hr style="border-color:var(--line)">
+
+        <p><b>عدد مرات الدخول:</b> ${u.loginCount}</p>
+        <p><b>آخر دخول:</b> ${formatDate(u.lastLogin)}</p>
+        <p class="muted"><b>آخر جهاز:</b> ${u.lastDevice}</p>
+        <p class="muted"><b>طريقة الدخول:</b> ${u.lastMethod}</p>
+
         <div class="filters">
           <button class="btn" onclick="editBalance('${u.user_id}', '${u.email}', ${u.balance})">تعديل الرصيد</button>
+          <button class="btn dark" onclick="toggleLoginDetails('${id}')">عرض الدخولات</button>
           <button class="btn red" onclick="banUser('${u.email}')">حظر</button>
           <button class="btn dark" onclick="unbanUser('${u.email}')">فك الحظر</button>
           <button class="btn red" onclick="cleanupUser('${u.user_id}', '${u.email}')">حذف بياناته</button>
+        </div>
+
+        <div id="logins-${id}" style="display:none;margin-top:14px">
+          ${renderLoginEvents(u.events)}
         </div>
       </div>
     `;
@@ -295,11 +393,13 @@ async function cleanupUser(userId, email) {
     await client.from("notifications").delete().eq("user_id", userId);
     await client.from("saved_ids").delete().eq("user_id", userId);
     await client.from("wallets").delete().eq("user_id", userId);
+    await client.from("login_events").delete().eq("user_id", userId);
   }
 
   if (email) {
     await client.from("orders").delete().eq("email", email);
     await client.from("wallet_topups").delete().eq("customer_email", email);
+    await client.from("login_events").delete().eq("email", email);
 
     await client.from("banned_users").insert([{
       email,
