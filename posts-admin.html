@@ -1,1 +1,204 @@
-<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>إدارة العروض</title><link rel="manifest" href="manifest.json"><link rel="stylesheet" href="style.css"><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="config.js"></script><script src="app.js"></script></head><body><div id="top"></div><section class="section container"><div class="glass card" id="guard"><h2>دخول الإدارة</h2><input id="pass" type="password" placeholder="كلمة السر"><button class="btn" onclick="enter()">دخول</button></div><div id="panel" style="display:none"><div class="glass card"><h2>نشر عرض / إشعار</h2><select id="type"><option value="offer">عرض</option><option value="notice">إشعار</option></select><input id="title" placeholder="العنوان"><textarea id="message" rows="4" placeholder="التفاصيل"></textarea><button class="btn" onclick="addPost()">نشر</button></div><div class="grid" id="posts"></div></div></section><div id="foot"></div><div id="toast" class="toast"></div><script>top.innerHTML=header("admin");foot.innerHTML=footer();</script><script>function enter(){if(pass.value!==ADMIN_PASSWORD)return alert("كلمة السر غلط");guard.style.display="none";panel.style.display="block";loadPosts()}async function addPost(){const {error}=await client.from("posts").insert([{type:type.value,title:title.value,message:message.value}]);if(error)return alert(error.message);toast("تم النشر");loadPosts()}async function loadPosts(){const {data}=await client.from("posts").select("*").order("created_at",{ascending:false});posts.innerHTML=(data||[]).map(p=>`<div class="card glass"><span class="badge">${p.type}</span><h3>${p.title}</h3><p class="muted">${p.message}</p></div>`).join("")}</script></body></html>
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة العروض - DevPlay</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+<div id="top"></div>
+
+<section class="section container">
+
+  <div id="guard" class="glass card" style="max-width:480px;margin:auto">
+    <h2>دخول الأدمن</h2>
+    <div class="form">
+      <input id="adminEmail" type="email" placeholder="إيميل الأدمن">
+      <input id="adminPassword" type="password" placeholder="باسورد الأدمن">
+      <button class="btn" onclick="adminLogin()">دخول</button>
+    </div>
+  </div>
+
+  <div id="panel" style="display:none">
+
+    <div class="glass card">
+      <h2>نشر عرض / إشعار</h2>
+
+      <div class="grid">
+        <select id="type">
+          <option value="offer">عرض</option>
+          <option value="notice">إشعار</option>
+        </select>
+
+        <input id="title" placeholder="العنوان">
+        <input id="image_url" placeholder="رابط الصورة أو اسم الصورة اختياري">
+      </div>
+
+      <br>
+
+      <textarea id="message" rows="4" placeholder="التفاصيل"></textarea>
+
+      <br><br>
+
+      <button class="btn" onclick="savePost()">حفظ</button>
+      <button class="btn dark" onclick="clearForm()">تفريغ</button>
+      <a class="btn dark" href="admin.html">طلبات الأدمن</a>
+      <a class="btn dark" href="admin-products.html">إدارة المنتجات</a>
+      <a class="btn dark" href="admin-coupons.html">إدارة القسايم</a>
+      <button class="btn red" onclick="adminLogout()">خروج</button>
+    </div>
+
+    <div class="glass card" style="margin-top:18px">
+      <h2>كل العروض والإشعارات</h2>
+      <input id="search" placeholder="بحث" oninput="renderPosts()">
+      <div id="posts" style="margin-top:16px"></div>
+    </div>
+
+  </div>
+</section>
+
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+document.getElementById("top").innerHTML = header("admin");
+document.getElementById("foot").innerHTML = footer();
+
+let allPosts = [];
+let editingPostId = null;
+
+async function adminLogin() {
+  const { data, error } = await client.rpc("check_admin_login", {
+    admin_email: adminEmail.value.trim(),
+    admin_password: adminPassword.value
+  });
+
+  if (error) return alert(error.message);
+  if (data !== true) return alert("بيانات الأدمن غلط");
+
+  const adminOk = await requireAdminPage();
+  if (!adminOk) return;
+
+  sessionStorage.setItem("devplay_admin", "yes");
+  guard.style.display = "none";
+  panel.style.display = "block";
+  loadPosts();
+}
+
+function adminLogout() {
+  sessionStorage.removeItem("devplay_admin");
+  location.reload();
+}
+
+async function loadPosts() {
+  const adminOk = await requireAdminPage();
+  if (!adminOk) return;
+
+  const { data, error } = await client
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) return alert(error.message);
+
+  allPosts = data || [];
+  renderPosts();
+}
+
+function renderPosts() {
+  const q = search.value.toLowerCase().trim();
+
+  const list = allPosts.filter(p =>
+    `${p.title || ""} ${p.message || ""} ${p.type || ""}`.toLowerCase().includes(q)
+  );
+
+  posts.innerHTML = list.length
+    ? list.map(p => `
+      <div class="glass card" style="margin-bottom:12px">
+        <span class="badge">${p.type === "offer" ? "عرض" : "إشعار"}</span>
+        ${p.image_url ? `<img src="${p.image_url}" style="width:100%;max-height:180px;object-fit:cover;border-radius:18px;margin:12px 0" onerror="this.style.display='none'">` : ""}
+        <h3>${p.title}</h3>
+        <p class="muted">${p.message}</p>
+        <button class="btn" onclick="editPost(${p.id})">تعديل</button>
+        <button class="btn red" onclick="deletePost(${p.id})">حذف</button>
+      </div>
+    `).join("")
+    : "<p class='muted'>لا توجد عروض.</p>";
+}
+
+function editPost(id) {
+  const p = allPosts.find(x => x.id === id);
+  if (!p) return;
+
+  editingPostId = id;
+  type.value = p.type || "offer";
+  title.value = p.title || "";
+  message.value = p.message || "";
+  image_url.value = p.image_url || "";
+
+  toast("عدلي البيانات واضغطي حفظ");
+}
+
+function clearForm() {
+  editingPostId = null;
+  title.value = "";
+  message.value = "";
+  image_url.value = "";
+  type.value = "offer";
+}
+
+async function savePost() {
+  if (!title.value.trim()) return toast("اكتبي العنوان");
+  if (!message.value.trim()) return toast("اكتبي التفاصيل");
+
+  const body = {
+    type: type.value,
+    title: title.value.trim(),
+    message: message.value.trim(),
+    image_url: image_url.value.trim() || null
+  };
+
+  let error;
+
+  if (editingPostId) {
+    const res = await client.from("posts").update(body).eq("id", editingPostId);
+    error = res.error;
+  } else {
+    const res = await client.from("posts").insert([body]);
+    error = res.error;
+  }
+
+  if (error) return alert(error.message);
+
+  toast("تم الحفظ ✅");
+  clearForm();
+  loadPosts();
+}
+
+async function deletePost(id) {
+  if (!confirm("حذف العرض؟")) return;
+
+  const { error } = await client.from("posts").delete().eq("id", id);
+
+  if (error) return alert(error.message);
+
+  toast("تم الحذف");
+  loadPosts();
+}
+
+if (sessionStorage.getItem("devplay_admin") === "yes") {
+  requireAdminPage().then(ok => {
+    if (!ok) return;
+    guard.style.display = "none";
+    panel.style.display = "block";
+    loadPosts();
+  });
+}
+</script>
+</body>
+</html>
