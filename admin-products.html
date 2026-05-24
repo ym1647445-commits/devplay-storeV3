@@ -12,6 +12,7 @@
 </head>
 <body>
 <div id="top"></div>
+
 <section class="section container">
 
   <div id="guard" class="glass card" style="max-width:480px;margin:auto">
@@ -24,8 +25,10 @@
   </div>
 
   <div id="panel" style="display:none">
+
     <div class="glass card">
-      <h2>إدارة المنتجات</h2>
+      <h2>إدارة السلع والمنتجات</h2>
+
       <div class="grid">
         <input id="game" placeholder="اسم اللعبة / الخدمة">
         <input id="name" placeholder="اسم الباقة">
@@ -33,35 +36,52 @@
         <input id="img" placeholder="اسم الصورة مثل pubg.png">
         <input id="need" placeholder="المطلوب من العميل">
         <input id="offer_label" placeholder="عرض / لابل اختياري">
+
         <select id="category">
           <option value="games">ألعاب</option>
-          <option value="mobile">رصيد</option>
-          <option value="fakka">فكة</option>
+          <option value="fakka">كروت فكة</option>
           <option value="cards">بطاقات</option>
+          <option value="other">أخرى</option>
         </select>
+
         <select id="popular">
           <option value="false">عادي</option>
           <option value="true">مميز</option>
         </select>
+
+        <select id="active">
+          <option value="true">ظاهر</option>
+          <option value="false">مخفي</option>
+        </select>
       </div>
+
       <br>
+
       <button class="btn" onclick="saveProduct()">حفظ المنتج</button>
+      <button class="btn dark" onclick="clearProductForm()">تفريغ</button>
       <a class="btn dark" href="admin.html">طلبات الأدمن</a>
       <a class="btn dark" href="admin-wallet.html">إدارة المحفظة</a>
+      <a class="btn dark" href="posts-admin.html">إدارة العروض</a>
+      <a class="btn dark" href="admin-coupons.html">إدارة القسايم</a>
       <button class="btn red" onclick="adminLogout()">خروج الأدمن</button>
     </div>
+
     <div class="glass card" style="margin-top:18px">
       <h2>كل المنتجات</h2>
       <input id="productSearch" placeholder="بحث في المنتجات" oninput="renderProducts()">
       <div id="productsList" style="margin-top:16px"></div>
     </div>
+
   </div>
 </section>
+
 <div id="foot"></div>
 <div id="toast" class="toast"></div>
+
 <script>
 document.getElementById("top").innerHTML = header("admin");
 document.getElementById("foot").innerHTML = footer();
+
 let adminProducts = [];
 let editingProductId = null;
 
@@ -74,12 +94,13 @@ async function adminLogin() {
   if (error) return alert(error.message);
   if (data !== true) return alert("بيانات الأدمن غلط");
 
+  const adminOk = await requireAdminPage();
+  if (!adminOk) return;
+
   sessionStorage.setItem("devplay_admin", "yes");
   guard.style.display = "none";
   panel.style.display = "block";
-  if (typeof load === "function") load();
-  if (typeof loadTopups === "function") loadTopups();
-  if (typeof loadProductsAdmin === "function") loadProductsAdmin();
+  loadProductsAdmin();
 }
 
 function adminLogout() {
@@ -87,39 +108,68 @@ function adminLogout() {
   location.reload();
 }
 
+function categoryLabel(cat) {
+  const map = {
+    games: "ألعاب",
+    mobile: "رصيد",
+    fakka: "كروت فكة",
+    cards: "بطاقات",
+    other: "أخرى"
+  };
+
+  return map[cat] || cat || "-";
+}
+
 async function loadProductsAdmin() {
-  const { data, error } = await client.from("products").select("*").order("created_at", { ascending: false });
+  const adminOk = await requireAdminPage();
+  if (!adminOk) return;
+
+  const { data, error } = await client
+    .from("products")
+    .select("*")
+    .order("created_at", { ascending: false });
+
   if (error) return alert(error.message);
+
   adminProducts = data || [];
   renderProducts();
 }
 
 function renderProducts() {
   const q = productSearch.value.toLowerCase().trim();
-  const list = adminProducts.filter(p => `${p.game} ${p.name} ${p.category} ${p.price}`.toLowerCase().includes(q));
-  productsList.innerHTML = list.length ? list.map(p => `
-    <div class="glass card" style="margin-bottom:12px">
-      <div class="item-row">
-        <div>
-          <h3>${p.game}</h3>
-          <p class="muted">${p.name}</p>
-          <p>${p.price} جنيه - ${categoryLabel(p.category)}</p>
-          <p class="muted">المطلوب: ${p.need || "-"}</p>
-          <p class="muted">الحالة: ${p.active ? "ظاهر" : "مخفي"}</p>
-        </div>
-        <div>
-          <button class="btn" onclick="fillEdit(${p.id})">تعديل</button>
-          <button class="btn dark" onclick="toggleProduct(${p.id}, ${p.active})">${p.active ? "إخفاء" : "إظهار"}</button>
-          <button class="btn red" onclick="deleteProduct(${p.id})">حذف</button>
+
+  const list = adminProducts.filter(p =>
+    `${p.game || ""} ${p.name || ""} ${p.category || ""} ${p.price || ""}`.toLowerCase().includes(q)
+  );
+
+  productsList.innerHTML = list.length
+    ? list.map(p => `
+      <div class="glass card" style="margin-bottom:12px">
+        <div class="item-row">
+          <div>
+            <h3>${p.game}</h3>
+            <p class="muted">${p.name}</p>
+            <p>${p.price} جنيه - ${categoryLabel(p.category)}</p>
+            <p class="muted">المطلوب: ${p.need || "-"}</p>
+            <p class="muted">الصورة: ${p.img || "-"}</p>
+            <p class="muted">الحالة: ${p.active !== false ? "ظاهر" : "مخفي"}</p>
+          </div>
+
+          <div>
+            <button class="btn" onclick="fillEdit(${p.id})">تعديل</button>
+            <button class="btn dark" onclick="toggleProduct(${p.id}, ${p.active !== false})">${p.active !== false ? "إخفاء" : "إظهار"}</button>
+            <button class="btn red" onclick="deleteProduct(${p.id})">حذف</button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join("") : "<p class='muted'>لا توجد منتجات.</p>";
+    `).join("")
+    : "<p class='muted'>لا توجد منتجات.</p>";
 }
 
 function fillEdit(id) {
   const p = adminProducts.find(x => x.id === id);
   if (!p) return;
+
   game.value = p.game || "";
   name.value = p.name || "";
   price.value = p.price || "";
@@ -128,55 +178,98 @@ function fillEdit(id) {
   offer_label.value = p.offer_label || "";
   category.value = p.category || "games";
   popular.value = String(!!p.popular);
+  active.value = String(p.active !== false);
   editingProductId = id;
+
   toast("عدلي البيانات واضغطي حفظ المنتج");
+}
+
+function clearProductForm() {
+  editingProductId = null;
+  game.value = "";
+  name.value = "";
+  price.value = "";
+  img.value = "";
+  need.value = "";
+  offer_label.value = "";
+  category.value = "games";
+  popular.value = "false";
+  active.value = "true";
 }
 
 async function saveProduct() {
   const body = {
-    game: game.value,
-    name: name.value,
+    game: game.value.trim(),
+    name: name.value.trim(),
     price: Number(price.value),
-    img: img.value || "logo.png",
-    need: need.value || "بيانات الطلب",
+    img: img.value.trim() || "logo.png",
+    need: need.value.trim() || "بيانات الطلب",
     category: category.value,
     popular: popular.value === "true",
-    offer_label: offer_label.value || null,
-    active: true
+    offer_label: offer_label.value.trim() || null,
+    active: active.value === "true"
   };
-  if (!body.game || !body.name || !body.price) return toast("اكتبي اسم الخدمة والباقة والسعر");
+
+  if (!body.game || !body.name || !body.price) {
+    return toast("اكتبي اسم الخدمة والباقة والسعر");
+  }
+
   let error;
+
   if (editingProductId) {
-    const res = await client.from("products").update(body).eq("id", editingProductId);
+    const res = await client
+      .from("products")
+      .update(body)
+      .eq("id", editingProductId);
+
     error = res.error;
-    editingProductId = null;
   } else {
-    const res = await client.from("products").insert([body]);
+    const res = await client
+      .from("products")
+      .insert([body]);
+
     error = res.error;
   }
+
   if (error) return alert(error.message);
+
   toast("تم الحفظ ✅");
-  game.value = ""; name.value = ""; price.value = ""; img.value = ""; need.value = ""; offer_label.value = "";
+  clearProductForm();
   loadProductsAdmin();
 }
 
-async function toggleProduct(id, active) {
-  const { error } = await client.from("products").update({ active: !active }).eq("id", id);
+async function toggleProduct(id, isActive) {
+  const { error } = await client
+    .from("products")
+    .update({ active: !isActive })
+    .eq("id", id);
+
   if (error) return alert(error.message);
+
   loadProductsAdmin();
 }
 
 async function deleteProduct(id) {
   if (!confirm("حذف المنتج؟")) return;
-  const { error } = await client.from("products").delete().eq("id", id);
+
+  const { error } = await client
+    .from("products")
+    .delete()
+    .eq("id", id);
+
   if (error) return alert(error.message);
+
   loadProductsAdmin();
 }
 
 if (sessionStorage.getItem("devplay_admin") === "yes") {
-  guard.style.display = "none";
-  panel.style.display = "block";
-  loadProductsAdmin();
+  requireAdminPage().then(ok => {
+    if (!ok) return;
+
+    guard.style.display = "none";
+    panel.style.display = "block";
+    loadProductsAdmin();
+  });
 }
 </script>
 </body>
