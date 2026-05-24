@@ -250,13 +250,7 @@ function applyFilters() {
   });
 
   const shouldShowMobile =
-    currentCategory === "all" ||
-    currentCategory === "mobile" ||
-    q.includes("رصيد") ||
-    q.includes("فودافون") ||
-    q.includes("اورنج") ||
-    q.includes("أورنج") ||
-    q.includes("اتصالات");
+  currentCategory === "mobile";
 
   const mobileHTML = shouldShowMobile ? mobileBalanceCard() : "";
 
