@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>إدارة القسايم - DevPlay</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</head>
+<body>
+<div id="top"></div>
+
+<section class="section container">
+
+  <div id="guard" class="glass card" style="max-width:480px;margin:auto">
+    <h2>دخول الأدمن</h2>
+    <div class="form">
+      <input id="adminEmail" type="email" placeholder="إيميل الأدمن">
+      <input id="adminPassword" type="password" placeholder="باسورد الأدمن">
+      <button class="btn" onclick="adminLogin()">دخول</button>
+    </div>
+  </div>
+
+  <div id="panel" style="display:none">
+
+    <div class="glass card">
+      <h2>إضافة / تعديل قسيمة</h2>
+
+      <div class="grid">
+        <input id="code" placeholder="كود القسيمة مثل DEV10">
+        <input id="description" placeholder="وصف القسيمة">
+        <input id="discount_value" type="number" step="0.01" placeholder="قيمة الخصم">
+        <input id="max_uses" type="number" placeholder="عدد مرات الاستخدام اختياري">
+
+        <select id="discount_type">
+          <option value="fixed">خصم بالجنيه</option>
+          <option value="percent">خصم نسبة %</option>
+        </select>
+
+        <select id="active">
+          <option value="true">مفعلة</option>
+          <option value="false">مخفية</option>
+        </select>
+      </div>
+
+      <br>
+
+      <button class="btn" onclick="saveCoupon()">حفظ القسيمة</button>
+      <button class="btn dark" onclick="clearCouponForm()">تفريغ</button>
+      <a class="btn dark" href="posts-admin.html">إدارة العروض</a>
+      <a class="btn dark" href="admin-products.html">إدارة المنتجات</a>
+      <button class="btn red" onclick="adminLogout()">خروج</button>
+    </div>
+
+    <div class="glass card" style="margin-top:18px">
+      <h2>كل القسايم</h2>
+      <input id="search" placeholder="بحث" oninput="renderCoupons()">
+      <div id="couponsList" style="margin-top:16px"></div>
+    </div>
+
+  </div>
+</section>
+
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
+
+<script>
+document.getElementById("top").innerHTML = header("admin");
+document.getElementById("foot").innerHTML = footer();
+
+let allCoupons = [];
+let editingCouponId = null;
+
+async function adminLogin() {
+  const { data, error } = await client.rpc("check_admin_login", {
+    admin_email: adminEmail.value.trim(),
+    admin_password: adminPassword.value
+  });
+
+  if (error) return alert(error.message);
+  if (data !== true) return alert("بيانات الأدمن غلط");
+
+  const adminOk = await requireAdminPage();
+  if (!adminOk) return;
+
+  sessionStorage.setItem("devplay_admin", "yes");
+  guard.style.display = "none";
+  panel.style.display = "block";
+  loadCoupons();
+}
+
+function adminLogout() {
+  sessionStorage.removeItem("devplay_admin");
+  location.reload();
+}
+
+async function loadCoupons() {
+  const adminOk = await requireAdminPage();
+  if (!adminOk) return;
+
+  const { data, error } = await client
+    .from("coupons")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) return alert(error.message);
+
+  allCoupons = data || [];
+  renderCoupons();
+}
+
+function renderCoupons() {
+  const q = search.value.toLowerCase().trim();
+
+  const list = allCoupons.filter(c =>
+    `${c.code || ""} ${c.description || ""} ${c.discount_value || ""}`.toLowerCase().includes(q)
+  );
+
+  couponsList.innerHTML = list.length
+    ? list.map(c => `
+      <div class="glass card" style="margin-bottom:12px">
+        <h3>${c.code} <span class="status ${c.active ? "shipped" : "rejected"}">${c.active ? "مفعل" : "مخفي"}</span></h3>
+        <p class="muted">${c.description || "-"}</p>
+        <p><b>الخصم:</b> ${c.discount_type === "percent" ? c.discount_value + "%" : c.discount_value + " جنيه"}</p>
+        <p><b>الاستخدام:</b> ${c.used_count || 0} / ${c.max_uses || "غير محدود"}</p>
+        <button class="btn" onclick="editCoupon(${c.id})">تعديل</button>
+        <button class="btn dark" onclick="toggleCoupon(${c.id}, ${c.active})">${c.active ? "إخفاء" : "تفعيل"}</button>
+        <button class="btn red" onclick="deleteCoupon(${c.id})">حذف</button>
+      </div>
+    `).join("")
+    : "<p class='muted'>لا توجد قسايم.</p>";
+}
+
+function editCoupon(id) {
+  const c = allCoupons.find(x => x.id === id);
+  if (!c) return;
+
+  editingCouponId = id;
+  code.value = c.code || "";
+  description.value = c.description || "";
+  discount_value.value = c.discount_value || "";
+  discount_type.value = c.discount_type || "fixed";
+  active.value = String(c.active !== false);
+  max_uses.value = c.max_uses || "";
+
+  toast("عدلي البيانات واضغطي حفظ");
+}
+
+function clearCouponForm() {
+  editingCouponId = null;
+  code.value = "";
+  description.value = "";
+  discount_value.value = "";
+  discount_type.value = "fixed";
+  active.value = "true";
+  max_uses.value = "";
+}
+
+async function saveCoupon() {
+  if (!code.value.trim()) return toast("اكتبي كود القسيمة");
+  if (!discount_value.value || Number(discount_value.value) <= 0) return toast("اكتبي قيمة الخصم");
+
+  const body = {
+    code: code.value.trim().toUpperCase(),
+    description: description.value.trim() || null,
+    discount_type: discount_type.value,
+    discount_value: Number(discount_value.value),
+    active: active.value === "true",
+    max_uses: max_uses.value ? Number(max_uses.value) : null
+  };
+
+  let error;
+
+  if (editingCouponId) {
+    const res = await client.from("coupons").update(body).eq("id", editingCouponId);
+    error = res.error;
+  } else {
+    const res = await client.from("coupons").insert([body]);
+    error = res.error;
+  }
+
+  if (error) return alert(error.message);
+
+  toast("تم حفظ القسيمة ✅");
+  clearCouponForm();
+  loadCoupons();
+}
+
+async function toggleCoupon(id, isActive) {
+  const { error } = await client
+    .from("coupons")
+    .update({ active: !isActive })
+    .eq("id", id);
+
+  if (error) return alert(error.message);
+
+  loadCoupons();
+}
+
+async function deleteCoupon(id) {
+  if (!confirm("حذف القسيمة؟")) return;
+
+  const { error } = await client.from("coupons").delete().eq("id", id);
+
+  if (error) return alert(error.message);
+
+  toast("تم الحذف");
+  loadCoupons();
+}
+
+if (sessionStorage.getItem("devplay_admin") === "yes") {
+  requireAdminPage().then(ok => {
+    if (!ok) return;
+    guard.style.display = "none";
+    panel.style.display = "block";
+    loadCoupons();
+  });
+}
+</script>
+</body>
+</html>
