@@ -11,24 +11,94 @@
   <script src="app.js"></script>
 </head>
 <body>
-  <div id="top"></div>
-  
+<div id="top"></div>
+
 <section class="section container">
-  <div class="section-head"><h2>العروض والإشعارات 🔥</h2></div>
+
+  <div class="section-head">
+    <h2>العروض والكوبونات 🔥</h2>
+  </div>
+
+  <div class="grid" id="coupons"></div>
+
+  <div class="section-head" style="margin-top:28px">
+    <h2>العروض والإشعارات</h2>
+  </div>
+
   <div class="grid" id="posts"></div>
-  <div class="section-head"><h2>تقييمات العملاء ⭐</h2></div>
+
+  <div class="section-head" style="margin-top:28px">
+    <h2>تقييمات العملاء ⭐</h2>
+  </div>
+
   <div class="grid" id="reviews"></div>
+
 </section>
 
-  <div id="foot"></div>
-  <div id="toast" class="toast"></div>
-  <script>
-    document.getElementById("top").innerHTML = header("offers");
-    document.getElementById("foot").innerHTML = footer();
-  </script>
-  
+<div id="foot"></div>
+<div id="toast" class="toast"></div>
+
 <script>
-async function loadOffers(){const {data}=await client.from("posts").select("*").order("created_at",{ascending:false});document.getElementById("posts").innerHTML=(data||[]).map(p=>`<div class="card glass"><span class="badge">${p.type==="offer"?"🔥 عرض":"🔔 إشعار"}</span><h3>${p.title}</h3><p class="muted">${p.message}</p></div>`).join("")||"<p class='muted'>لا توجد عروض.</p>";const {data:rev}=await client.from("reviews").select("*").order("created_at",{ascending:false}).limit(8);document.getElementById("reviews").innerHTML=(rev||[]).map(r=>`<div class="card glass"><h3>${"⭐".repeat(Number(r.rating||5))}</h3><p>${r.comment}</p><p class="muted">${r.customer_name||"عميل DevPlay"}</p></div>`).join("")||"<p class='muted'>لا توجد تقييمات.</p>";}
+document.getElementById("top").innerHTML = header("offers");
+document.getElementById("foot").innerHTML = footer();
+
+async function loadOffers() {
+  const { data: couponData } = await client
+    .from("coupons")
+    .select("*")
+    .eq("active", true)
+    .order("created_at", { ascending: false });
+
+  coupons.innerHTML = (couponData || []).length
+    ? (couponData || []).map(c => `
+      <div class="card glass">
+        <span class="badge">قسيمة خصم</span>
+        <h3>${c.code}</h3>
+        <p class="muted">${c.description || "استخدمي الكود عند الطلب"}</p>
+        <p><b>${c.discount_type === "percent" ? c.discount_value + "%" : c.discount_value + " جنيه"}</b></p>
+        <button class="btn" onclick="copyCoupon('${c.code}')">نسخ الكود</button>
+      </div>
+    `).join("")
+    : "<p class='muted'>لا توجد قسائم حاليًا.</p>";
+
+  const { data } = await client
+    .from("posts")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  posts.innerHTML = (data || []).length
+    ? (data || []).map(p => `
+      <div class="card glass">
+        <span class="badge">${p.type === "offer" ? "🔥 عرض" : "🔔 إشعار"}</span>
+        ${p.image_url ? `<img src="${p.image_url}" style="width:100%;border-radius:18px;margin:12px 0" onerror="this.style.display='none'">` : ""}
+        <h3>${p.title}</h3>
+        <p class="muted">${p.message}</p>
+      </div>
+    `).join("")
+    : "<p class='muted'>لا توجد عروض.</p>";
+
+  const { data: rev } = await client
+    .from("reviews")
+    .select("*")
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  reviews.innerHTML = (rev || []).length
+    ? (rev || []).map(r => `
+      <div class="card glass">
+        <h3>${"⭐".repeat(Number(r.rating || 5))}</h3>
+        <p>${r.comment}</p>
+        <p class="muted">${r.customer_name || "عميل DevPlay"}</p>
+      </div>
+    `).join("")
+    : "<p class='muted'>لا توجد تقييمات.</p>";
+}
+
+function copyCoupon(code) {
+  navigator.clipboard.writeText(code);
+  toast("تم نسخ الكود ✅");
+}
+
 loadOffers();
 </script>
 
